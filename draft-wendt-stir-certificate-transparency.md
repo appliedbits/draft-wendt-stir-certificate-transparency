@@ -19,11 +19,11 @@
 # Change the file extension to match the format (.xml for XML, etc...)
 #
 ###
-title: "TODO - Your title"
-abbrev: "TODO - Abbreviation"
+title: "STI Certificate Transparency"
+abbrev: "STI CT"
 category: info
 
-docname: draft-todo-yourname-protocol-latest
+docname: draft-wendt-stir-certificate-transparency
 submissiontype: IETF  # also: "independent", "editorial", "IAB", or "IRTF"
 number:
 date:
@@ -45,9 +45,9 @@ venue:
 
 author:
  -
-    fullname: Your Name Here
-    organization: Your Organization Here
-    email: your.email@example.com
+    fullname: Chris Wendt
+    organization: Somos
+    email: chris@appliedbits.com
 
 normative:
 
