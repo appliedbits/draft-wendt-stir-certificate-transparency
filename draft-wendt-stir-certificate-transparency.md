@@ -9,19 +9,19 @@ number:
 date:
 consensus: true
 v: 3
-area: AREA
-workgroup: WG Working Group
+area: "Applications and Real-Time"
+workgroup: "Secure Telephone Identity Revisited"
 keyword:
  - next generation
  - unicorn
  - sparkling distributed ledger
 venue:
-  group: WG
-  type: Working Group
-  mail: WG@example.com
-  arch: https://example.com/WG
-  github: USER/REPO
-  latest: https://example.com/LATEST
+  group: "Secure Telephone Identity Revisited"
+  type: "Working Group"
+  mail: "stir@ietf.org"
+  arch: "https://mailarchive.ietf.org/arch/browse/stir/"
+  github: "appliedbits/draft-wendt-stir-certificate-transparency"
+  latest: "https://appliedbits.github.io/draft-wendt-stir-certificate-transparency/draft-wendt-stir-certificate-transparency.html"
 
 author:
  -
