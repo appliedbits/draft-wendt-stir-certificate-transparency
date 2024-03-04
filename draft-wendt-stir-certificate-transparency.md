@@ -28,7 +28,7 @@ author:
     fullname: Chris Wendt
     organization: Somos, Inc.
     email: chris@appliedbits.com
- _
+ -
     fullname: Rob Sliwa
     organization: Somos, Inc.
     email: robjsliwa@gmail.com
