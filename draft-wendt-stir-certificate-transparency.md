@@ -35,6 +35,7 @@ author:
 
 normative:
   RFC8224:
+  RFC8225:
   RFC8226:
   RFC9060:
   RFC9118:
