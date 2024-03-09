@@ -28,16 +28,20 @@ author:
     fullname: Chris Wendt
     organization: Somos, Inc.
     email: chris@appliedbits.com
+    country: US
  -
     fullname: Rob Sliwa
     organization: Somos, Inc.
     email: robjsliwa@gmail.com
+    country: US
 
 normative:
   RFC8224:
+  RFC8225:
   RFC8226:
   RFC9060:
   RFC9118:
+  RFC9162:
   RFC9448:
 
 informative:
