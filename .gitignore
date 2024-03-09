@@ -21,3 +21,5 @@ draft-wendt-stir-certificate-transparency.xml
 package-lock.json
 report.xml
 !requirements.txt
+build.sh
+draft-wendt-stir-certificate-transparency-00.md
