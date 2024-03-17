@@ -117,7 +117,7 @@ Log Client Messages and API MUST follow same protocols, formats and procedures a
 
 # STIR Authentication Services
 
-STIR Authentication Services {{RFC8224}} MUST present on or more SCTs from one or more logs by the inclusion of the stir certificate that has CT information encoded as an extension in the X.509v3 certificate (see Section 7.1.2 of {{RFFC9162}}).
+STIR Authentication Services {{RFC8224}} MUST present on or more SCTs from one or more logs by the inclusion of the stir certificate that has CT information encoded as an extension in the X.509v3 certificate (see Section 7.1.2 of {{RFC9162}}).
 
 # STI Certification Authorities
 
