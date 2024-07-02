@@ -127,34 +127,135 @@ A certification authority MUST include a Transparency Information X.509v3 extens
 
 There are various different functions clients of logs might perform. In this document, the client generally refers to the STI verification service defined in {{RFC8224}}, or more generally an entity that performs the verification of a PASSporT defined in {{RFC8225}}. We describe here some typical clients and how they should function.
 
-## STI Verification Service
+## Submission and Handling of SCTs
 
-### Receiving SCTs
+1. **STI-CA/STI-SCA Submits STI Certificate to Transparency Logs**:
+   - **Step 1**: The STI Certificate Authority (STI-CA) or STI Subordinate Certificate Authority (STI-SCA) issues a new STI certificate.
+   - **Step 2**: The STI-CA/STI-SCA submits the issued STI certificate to one or more transparency logs using the `submit-entry` API.
 
-When a STIR Verification Service receives a signed PASSporT referencing a stir certificate, the verification service should check that the certificate has CT information encoded as an extension and that is a valid signed SCT or multiple SCTs.
+   **API Call**:
+   ```http
+   POST <Base URL>/ct/v2/submit-entry
+   Content-Type: application/json
 
-### Reconstructing the TBSCertificate
+   {
+       "submission": "base64-encoded-sti-certificate",
+       "type": 1,
+       "chain": [
+           "base64-encoded-CA-cert-1",
+           "base64-encoded-CA-cert-2"
+       ]
+   }
+   ```
 
-Validation of an SCT for a certificate (where the type of the TransItem is x509_sct_v2) uses the unmodified TBSCertificate component of the certificate.
+   **Expected Response**:
+   ```json
+   {
+       "sct": "base64-encoded-sct",
+       "sth": "base64-encoded-signed_tree_head",
+       "inclusion": "base64-encoded-inclusion_proof"
+   }
+   ```
 
-Before an SCT for a precertificate (where the type of the TransItem is precert_sct_v2) can be validated, the TBSCertificate component of the precertificate needs to be reconstructed from the TBSCertificate component of the certificate as follows:
+2. **Transparency Log Generates SCT**:
+   - **Step 3**: Each transparency log processes the submission and generates a Signed Certificate Timestamp (SCT).
+   - **Step 4**: The transparency log returns the SCT to the STI-CA/STI-SCA.
 
-Remove the Transparency Information extension (see Section 7.1 of {{RFC9162}}).
+3. **STI-CA/STI-SCA Passes SCT(s) to STI-AS**:
+   - **Step 5**: The STI-CA/STI-SCA passes the generated SCT(s) to the STI Authentication Service (STI-AS). This can be done via a non-prescriptive method such as including SCT(s) in the certificate issuance metadata or through a separate communication channel.
 
-### Validating SCTs
+4. **STI-AS Includes SCTs in `sct` Claim**:
+   - **Step 6**: The STI-AS includes the SCTs in the `sct` claim of the PASSporT (Personal Assertion Token) when signing a call identity.
 
-In order to make use of a received SCT, the STI Verification Service MUST first validate it as follows:
+   **Example PASSporT with SCT Claim**:
+   ```json
+   {
+       "alg": "ES256",
+       "typ": "passport",
+       "x5u": "https://sti-ca.example.com/certificates/stica-cert.pem",
+       "iat": 1577836800,
+       "orig": "+12155551212",
+       "dest": "+12155559876",
+       "attest": "A",
+       "origid": "123e4567-e89b-12d3-a456-426614174000",
+       "sct": ["base64-encoded-sct1", "base64-encoded-sct2"]
+   }
+   ```
 
-* Compute the signature input by constructing a TransItem of type x509_entry_v2, depending on the SCT's TransItem type. The TimestampedCertificateEntryDataV2 structure is constructed in the following manner:
+   - **Step 7**: If some logs are slow to respond, their SCTs may be skipped to ensure timely processing.
 
-- timestamp is copied from the SCT.
-- tbs_certificate is the reconstructed TBSCertificate portion of the server certificate, as described in Section 8.1.2 of {{RFC9162}}.
-- issuer_key_hash is computed as described in Section 4.7 of {{RFC9162}}.
-- sct_extensions is copied from the SCT.
+5. **STI-VS Verifies PASSporT and SCTs**:
+   - **Step 8**: The STI Verification Service (STI-VS) receives the signed PASSporT from the STI-AS.
+   - **Step 9**: The STI-VS verifies that the PASSporT contains matching SCTs for the certificate it was signed with. The STI-VS checks for the presence of SCT(s) and trusts them for quick verification.
+   - **Step 10**: In the background, a separate process can periodically gather and verify the SCTs with the transparency logs to ensure their validity and integrity.
 
-* Verify the SCT's signature against the computed signature input using the public key of the corresponding log, which is identified by the log_id. The required signature algorithm is one of the log's parameters.
+## Example API Calls for Step-by-Step Flow
 
-Note that SCT validation is not a substitute for the normal validation of the server certificate and its chain.
+1. **Submit Entry to Log**:
+   ```http
+   POST <Base URL>/ct/v2/submit-entry
+   Content-Type: application/json
+
+   {
+       "submission": "base64-encoded-sti-certificate",
+       "type": 1,
+       "chain": [
+           "base64-encoded-CA-cert-1",
+           "base64-encoded-CA-cert-2"
+       ]
+   }
+   ```
+
+2. **Retrieve Latest STH (optional for background process)**:
+   ```http
+   GET <Base URL>/ct/v2/get-sth
+   ```
+
+   **Expected Response**:
+   ```json
+   {
+       "sth": "base64-encoded-signed_tree_head_v2"
+   }
+   ```
+
+3. **Retrieve Merkle Inclusion Proof by Leaf Hash (optional for background process)**:
+   ```http
+   GET <Base URL>/ct/v2/get-proof-by-hash?hash=base64-encoded-hash&tree_size=tree-size
+   ```
+
+   **Expected Response**:
+   ```json
+   {
+       "inclusion": "base64-encoded-inclusion_proof_v2",
+       "sth": "base64-encoded-signed_tree_head_v2"
+   }
+   ```
+
+4. **Retrieve Entries and STH from Log (optional for background process)**:
+   ```http
+   GET <Base URL>/ct/v2/get-entries?start=0&end=99
+   ```
+
+   **Expected Response**:
+   ```json
+   {
+       "entries": [
+           {
+               "log_entry": "base64-encoded-log-entry",
+               "submitted_entry": {
+                   "submission": "base64-encoded-sti-certificate",
+                   "chain": [
+                       "base64-encoded-CA-cert-1",
+                       "base64-encoded-CA-cert-2",
+                       "base64-encoded-trust-anchor-cert"
+                   ]
+               },
+               "sct": "base64-encoded-sct"
+           }
+       ],
+       "sth": "base64-encoded-signed_tree_head_v2"
+   }
+   ```
 
 ## Monitor
 
