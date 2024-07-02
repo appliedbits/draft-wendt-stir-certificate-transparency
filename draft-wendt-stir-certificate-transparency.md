@@ -259,11 +259,82 @@ There are various different functions clients of logs might perform. In this doc
 
 ## Monitor
 
-Monitors watch logs to check for correct behavior, for certificates of interest, or for both. For example, a monitor may be configured to report on all certificates that apply to a specific domain name when fetching new entries for consistency validation.
+Monitors in the STIR/SHAKEN Certificate Transparency (CT) framework play a crucial role in maintaining the integrity and trust of the ecosystem. They ensure that no certificates are mis-issued, particularly concerning the TNAuthList field, which lists the telephone numbers an entity is authorized to use.
 
-A monitor MUST at least inspect every new entry in every log it watches, and it MAY also choose to keep copies of entire logs.
+### Monitor Workflow
 
-To inspect all of the existing entries, the monitor SHOULD follow the steps detailed in Section 8.2 of {{RFC9162}}.
+1. **Initialize Monitor**:
+   - **Step 1**: Set up the Monitor to periodically query the transparency logs for new entries. The Monitor must be configured with the base URL of each log it intends to monitor.
+   - **Step 2**: Configure the Monitor with a list of telephone numbers (TNs) and associated entities to track.
+
+2. **Retrieve Latest STH**:
+   - **Step 3**: The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
+
+   **API Call**:
+   ```http
+   GET <Base URL>/ct/v2/get-sth
+   ```
+
+   **Expected Response**:
+   ```json
+   {
+       "sth": "base64-encoded-signed_tree_head_v2"
+   }
+   ```
+
+3. **Retrieve New Entries from Log**:
+   - **Step 4**: Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
+
+   **API Call**:
+   ```http
+   GET <Base URL>/ct/v2/get-entries?start=last_known_index&end=current_sth_index
+   ```
+
+   **Expected Response**:
+   ```json
+   {
+       "entries": [
+           {
+               "log_entry": "base64-encoded-log-entry",
+               "submitted_entry": {
+                   "submission": "base64-encoded-sti-certificate",
+                   "chain": [
+                       "base64-encoded-CA-cert-1",
+                       "base64-encoded-CA-cert-2",
+                       "base64-encoded-trust-anchor-cert"
+                   ]
+               },
+               "sct": "base64-encoded-sct"
+           }
+       ],
+       "sth": "base64-encoded-signed_tree_head_v2"
+   }
+   ```
+
+4. **Decode and Verify Certificates**:
+   - **Step 5**: Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
+
+5. **Check for Mis-issuance**:
+   - **Step 6**: Compare the TNAuthList and entity name from the newly issued certificate with the Monitor's configured list. Alarm if a certificate is issued in the name of a different entity for the same TNs.
+
+   **Example Pseudocode**:
+   ```python
+   for entry in entries:
+       certificate = decode_base64(entry["submitted_entry"]["submission"])
+       tn_auth_list = extract_tn_auth_list(certificate)
+       entity_name = extract_entity_name(certificate)
+
+       for tn in tn_auth_list:
+           if tn in monitor_configured_tn_list:
+               if monitor_configured_tn_list[tn] != entity_name:
+                   raise Alarm(f"Misissued Certificate: {tn} assigned to {entity_name}")
+   ```
+
+6. **Alarm and Reporting**:
+   - **Step 7**: If a mis-issuance is detected, raise an alarm and log the details for further investigation. Optionally, notify relevant stakeholders.
+
+7. **Maintain State and Continuity**:
+   - **Step 8**: Update the Monitor's last known state with the current STH index to ensure continuity in monitoring.
 
 ## Auditing
 
