@@ -89,21 +89,13 @@ Those concerned about misissuance of stir certificates can monitor the logs, ask
 
 # Submitters
 
-Submitters submit certificates or preannouncements of certificates prior to issuance (precertificates) to logs for public auditing. In order to enable attribution of each logged certificate or precertificate to its issuer, each submission MUST be accompanied by all additional certificates required to verify the chain up to an accepted trust anchor. The trust anchor (a root or intermediate CA certificate) MAY be omitted from the submission.
+Submitters submit certificates to logs for public auditing. In order to enable attribution of each logged certificate to its issuer, each submission MUST be accompanied by all additional certificates required to verify the chain up to an accepted trust anchor. The trust anchor (a root or intermediate CA certificate) MAY be omitted from the submission.
 
 If a log accepts a submission, it will return a Signed Certificate Timestamp (SCT) (see Section 4.8 {{RFC9162}}). The submitter SHOULD validate the returned SCT, as described in Section 8.1 of {{RFC9162}}, if they understand its format and they intend to use it to construct an STI certificate.
 
 ## Certificates
 
 Any entity can submit a certificate (Section 5.1 of {{RFC9162}}) to a log. Since it is anticipated that verification services could reject certificates that are not logged, it is expected that certificate issuers and subjects will be strongly motivated to submit them.
-
-Author note: consider the exclusive use of precertificates, so this section may not be needed
-
-## Precertificates
-
-CAs may preannounce a certificate prior to issuance by submitting a precertificate (Section 5.1 of {{RFC9162}}) that the log can use to create an entry that will be valid against the issued certificate. If the CA is submitting the precertificate to only one log, it MUST incorporate the returned SCT in the issued certificate. The returned SCT MAY not be incorporated in the issued certificate is when a CA sends the precertificate to multiple logs and only incorporates the SCTs that are returned first.
-
-A precertificate is a CMS {{RFC5652}} signed-data object that conforms to the profile detailed in Section 3.2 of {{RFC9162}}.
 
 # Log Format and Operation
 
