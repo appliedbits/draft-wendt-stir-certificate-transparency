@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-07-02T01:15:27.896918+00:00",
+  "timestamp": "2024-07-04T01:15:29.904620+00:00",
   "repo": "appliedbits/draft-wendt-stir-certificate-transparency",
   "labels": [
     {
@@ -50,5 +50,32 @@
     }
   ],
   "issues": [],
-  "pulls": []
+  "pulls": [
+    {
+      "number": 1,
+      "id": "PR_kwDOLXaE2s50OEGQ",
+      "title": "Changes to add details for CT submission,SCT verification, and using only Certificates.",
+      "url": "https://github.com/appliedbits/draft-wendt-stir-certificate-transparency/pull/1",
+      "state": "OPEN",
+      "author": "robjsliwa",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Main changes proposed:\r\n- Updated Client section to add step-by-step flow from Certificate creation/submission to SCT verification.\r\n- Added flow for Monitors.\r\n- Proposed to use only Certificates and no Pre-Certificates, that is, removed references to Pre-Certificate option,",
+      "createdAt": "2024-07-02T16:01:41Z",
+      "updatedAt": "2024-07-02T16:01:41Z",
+      "baseRepository": "appliedbits/draft-wendt-stir-certificate-transparency",
+      "baseRefName": "main",
+      "baseRefOid": "6c324bad884fd87d257356aaa49cf157e1b83882",
+      "headRepository": "appliedbits/draft-wendt-stir-certificate-transparency",
+      "headRefName": "flow",
+      "headRefOid": "f277c79f37910d6f4ccbb14b2a1fea1d7674e5fc",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    }
+  ]
 }
