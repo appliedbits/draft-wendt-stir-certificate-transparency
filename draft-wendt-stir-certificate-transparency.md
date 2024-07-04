@@ -89,21 +89,13 @@ Those concerned about misissuance of stir certificates can monitor the logs, ask
 
 # Submitters
 
-Submitters submit certificates or preannouncements of certificates prior to issuance (precertificates) to logs for public auditing. In order to enable attribution of each logged certificate or precertificate to its issuer, each submission MUST be accompanied by all additional certificates required to verify the chain up to an accepted trust anchor. The trust anchor (a root or intermediate CA certificate) MAY be omitted from the submission.
+Submitters submit certificates to logs for public auditing. In order to enable attribution of each logged certificate to its issuer, each submission MUST be accompanied by all additional certificates required to verify the chain up to an accepted trust anchor. The trust anchor (a root or intermediate CA certificate) MAY be omitted from the submission.
 
 If a log accepts a submission, it will return a Signed Certificate Timestamp (SCT) (see Section 4.8 {{RFC9162}}). The submitter SHOULD validate the returned SCT, as described in Section 8.1 of {{RFC9162}}, if they understand its format and they intend to use it to construct an STI certificate.
 
 ## Certificates
 
 Any entity can submit a certificate (Section 5.1 of {{RFC9162}}) to a log. Since it is anticipated that verification services could reject certificates that are not logged, it is expected that certificate issuers and subjects will be strongly motivated to submit them.
-
-Author note: consider the exclusive use of precertificates, so this section may not be needed
-
-## Precertificates
-
-CAs may preannounce a certificate prior to issuance by submitting a precertificate (Section 5.1 of {{RFC9162}}) that the log can use to create an entry that will be valid against the issued certificate. If the CA is submitting the precertificate to only one log, it MUST incorporate the returned SCT in the issued certificate. The returned SCT MAY not be incorporated in the issued certificate is when a CA sends the precertificate to multiple logs and only incorporates the SCTs that are returned first.
-
-A precertificate is a CMS {{RFC5652}} signed-data object that conforms to the profile detailed in Section 3.2 of {{RFC9162}}.
 
 # Log Format and Operation
 
@@ -127,42 +119,214 @@ A certification authority MUST include a Transparency Information X.509v3 extens
 
 There are various different functions clients of logs might perform. In this document, the client generally refers to the STI verification service defined in {{RFC8224}}, or more generally an entity that performs the verification of a PASSporT defined in {{RFC8225}}. We describe here some typical clients and how they should function.
 
-## STI Verification Service
+## Submission and Handling of SCTs
 
-### Receiving SCTs
+1. **STI-CA/STI-SCA Submits STI Certificate to Transparency Logs**:
+   - **Step 1**: The STI Certificate Authority (STI-CA) or STI Subordinate Certificate Authority (STI-SCA) issues a new STI certificate.
+   - **Step 2**: The STI-CA/STI-SCA submits the issued STI certificate to one or more transparency logs using the `submit-entry` API.
 
-When a STIR Verification Service receives a signed PASSporT referencing a stir certificate, the verification service should check that the certificate has CT information encoded as an extension and that is a valid signed SCT or multiple SCTs.
+   **API Call**:
+   ```http
+   POST <Base URL>/ct/v2/submit-entry
+   Content-Type: application/json
 
-### Reconstructing the TBSCertificate
+   {
+       "submission": "base64-encoded-sti-certificate",
+       "type": 1,
+       "chain": [
+           "base64-encoded-CA-cert-1",
+           "base64-encoded-CA-cert-2"
+       ]
+   }
+   ```
 
-Validation of an SCT for a certificate (where the type of the TransItem is x509_sct_v2) uses the unmodified TBSCertificate component of the certificate.
+   **Expected Response**:
+   ```json
+   {
+       "sct": "base64-encoded-sct",
+       "sth": "base64-encoded-signed_tree_head",
+       "inclusion": "base64-encoded-inclusion_proof"
+   }
+   ```
 
-Before an SCT for a precertificate (where the type of the TransItem is precert_sct_v2) can be validated, the TBSCertificate component of the precertificate needs to be reconstructed from the TBSCertificate component of the certificate as follows:
+2. **Transparency Log Generates SCT**:
+   - **Step 3**: Each transparency log processes the submission and generates a Signed Certificate Timestamp (SCT).
+   - **Step 4**: The transparency log returns the SCT to the STI-CA/STI-SCA.
 
-Remove the Transparency Information extension (see Section 7.1 of {{RFC9162}}).
+3. **STI-CA/STI-SCA Passes SCT(s) to STI-AS**:
+   - **Step 5**: The STI-CA/STI-SCA passes the generated SCT(s) to the STI Authentication Service (STI-AS). This can be done via a non-prescriptive method such as including SCT(s) in the certificate issuance metadata or through a separate communication channel.
 
-### Validating SCTs
+4. **STI-AS Includes SCTs in `sct` Claim**:
+   - **Step 6**: The STI-AS includes the SCTs in the `sct` claim of the PASSporT (Personal Assertion Token) when signing a call identity.
 
-In order to make use of a received SCT, the STI Verification Service MUST first validate it as follows:
+   **Example PASSporT with SCT Claim**:
+   ```json
+   {
+       "alg": "ES256",
+       "typ": "passport",
+       "x5u": "https://sti-ca.example.com/certificates/stica-cert.pem",
+       "iat": 1577836800,
+       "orig": "+12155551212",
+       "dest": "+12155559876",
+       "attest": "A",
+       "origid": "123e4567-e89b-12d3-a456-426614174000",
+       "sct": ["base64-encoded-sct1", "base64-encoded-sct2"]
+   }
+   ```
 
-* Compute the signature input by constructing a TransItem of type x509_entry_v2, depending on the SCT's TransItem type. The TimestampedCertificateEntryDataV2 structure is constructed in the following manner:
+   - **Step 7**: If some logs are slow to respond, their SCTs may be skipped to ensure timely processing.
 
-- timestamp is copied from the SCT.
-- tbs_certificate is the reconstructed TBSCertificate portion of the server certificate, as described in Section 8.1.2 of {{RFC9162}}.
-- issuer_key_hash is computed as described in Section 4.7 of {{RFC9162}}.
-- sct_extensions is copied from the SCT.
+5. **STI-VS Verifies PASSporT and SCTs**:
+   - **Step 8**: The STI Verification Service (STI-VS) receives the signed PASSporT from the STI-AS.
+   - **Step 9**: The STI-VS verifies that the PASSporT contains matching SCTs for the certificate it was signed with. The STI-VS checks for the presence of SCT(s) and trusts them for quick verification.
+   - **Step 10**: In the background, a separate process can periodically gather and verify the SCTs with the transparency logs to ensure their validity and integrity.
 
-* Verify the SCT's signature against the computed signature input using the public key of the corresponding log, which is identified by the log_id. The required signature algorithm is one of the log's parameters.
+## Example API Calls for Step-by-Step Flow
 
-Note that SCT validation is not a substitute for the normal validation of the server certificate and its chain.
+1. **Submit Entry to Log**:
+   ```http
+   POST <Base URL>/ct/v2/submit-entry
+   Content-Type: application/json
+
+   {
+       "submission": "base64-encoded-sti-certificate",
+       "type": 1,
+       "chain": [
+           "base64-encoded-CA-cert-1",
+           "base64-encoded-CA-cert-2"
+       ]
+   }
+   ```
+
+2. **Retrieve Latest STH (optional for background process)**:
+   ```http
+   GET <Base URL>/ct/v2/get-sth
+   ```
+
+   **Expected Response**:
+   ```json
+   {
+       "sth": "base64-encoded-signed_tree_head_v2"
+   }
+   ```
+
+3. **Retrieve Merkle Inclusion Proof by Leaf Hash (optional for background process)**:
+   ```http
+   GET <Base URL>/ct/v2/get-proof-by-hash?hash=base64-encoded-hash&tree_size=tree-size
+   ```
+
+   **Expected Response**:
+   ```json
+   {
+       "inclusion": "base64-encoded-inclusion_proof_v2",
+       "sth": "base64-encoded-signed_tree_head_v2"
+   }
+   ```
+
+4. **Retrieve Entries and STH from Log (optional for background process)**:
+   ```http
+   GET <Base URL>/ct/v2/get-entries?start=0&end=99
+   ```
+
+   **Expected Response**:
+   ```json
+   {
+       "entries": [
+           {
+               "log_entry": "base64-encoded-log-entry",
+               "submitted_entry": {
+                   "submission": "base64-encoded-sti-certificate",
+                   "chain": [
+                       "base64-encoded-CA-cert-1",
+                       "base64-encoded-CA-cert-2",
+                       "base64-encoded-trust-anchor-cert"
+                   ]
+               },
+               "sct": "base64-encoded-sct"
+           }
+       ],
+       "sth": "base64-encoded-signed_tree_head_v2"
+   }
+   ```
 
 ## Monitor
 
-Monitors watch logs to check for correct behavior, for certificates of interest, or for both. For example, a monitor may be configured to report on all certificates that apply to a specific domain name when fetching new entries for consistency validation.
+Monitors in the STIR/SHAKEN Certificate Transparency (CT) framework play a crucial role in maintaining the integrity and trust of the ecosystem. They ensure that no certificates are mis-issued, particularly concerning the TNAuthList field, which lists the telephone numbers an entity is authorized to use.
 
-A monitor MUST at least inspect every new entry in every log it watches, and it MAY also choose to keep copies of entire logs.
+### Monitor Workflow
 
-To inspect all of the existing entries, the monitor SHOULD follow the steps detailed in Section 8.2 of {{RFC9162}}.
+1. **Initialize Monitor**:
+   - **Step 1**: Set up the Monitor to periodically query the transparency logs for new entries. The Monitor must be configured with the base URL of each log it intends to monitor.
+   - **Step 2**: Configure the Monitor with a list of telephone numbers (TNs) and associated entities to track.
+
+2. **Retrieve Latest STH**:
+   - **Step 3**: The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
+
+   **API Call**:
+   ```http
+   GET <Base URL>/ct/v2/get-sth
+   ```
+
+   **Expected Response**:
+   ```json
+   {
+       "sth": "base64-encoded-signed_tree_head_v2"
+   }
+   ```
+
+3. **Retrieve New Entries from Log**:
+   - **Step 4**: Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
+
+   **API Call**:
+   ```http
+   GET <Base URL>/ct/v2/get-entries?start=last_known_index&end=current_sth_index
+   ```
+
+   **Expected Response**:
+   ```json
+   {
+       "entries": [
+           {
+               "log_entry": "base64-encoded-log-entry",
+               "submitted_entry": {
+                   "submission": "base64-encoded-sti-certificate",
+                   "chain": [
+                       "base64-encoded-CA-cert-1",
+                       "base64-encoded-CA-cert-2",
+                       "base64-encoded-trust-anchor-cert"
+                   ]
+               },
+               "sct": "base64-encoded-sct"
+           }
+       ],
+       "sth": "base64-encoded-signed_tree_head_v2"
+   }
+   ```
+
+4. **Decode and Verify Certificates**:
+   - **Step 5**: Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
+
+5. **Check for Mis-issuance**:
+   - **Step 6**: Compare the TNAuthList and entity name from the newly issued certificate with the Monitor's configured list. Alarm if a certificate is issued in the name of a different entity for the same TNs.
+
+   **Example Pseudocode**:
+   ```python
+   for entry in entries:
+       certificate = decode_base64(entry["submitted_entry"]["submission"])
+       tn_auth_list = extract_tn_auth_list(certificate)
+       entity_name = extract_entity_name(certificate)
+
+       for tn in tn_auth_list:
+           if tn in monitor_configured_tn_list:
+               if monitor_configured_tn_list[tn] != entity_name:
+                   raise Alarm(f"Misissued Certificate: {tn} assigned to {entity_name}")
+   ```
+
+6. **Alarm and Reporting**:
+   - **Step 7**: If a mis-issuance is detected, raise an alarm and log the details for further investigation. Optionally, notify relevant stakeholders.
+
+7. **Maintain State and Continuity**:
+   - **Step 8**: Update the Monitor's last known state with the current STH index to ensure continuity in monitoring.
 
 ## Auditing
 
