@@ -46,6 +46,7 @@ author:
     country: US
 
 normative:
+  RFC7519:
   RFC8224:
   RFC8225:
   RFC8226:
@@ -82,7 +83,7 @@ This general mechanism could also be used for transparently logging other import
 
 # The Use of Certificate Transparency for STI Certificates
 
-CT log(s) contains certificate chains, which can be submitted by any CA authorized in a STIR eco-system. It is expected that these CAs will contribute all their newly issued certificates to one or more logs.  Note, in {{RFC9162}} it is possible for certificate holders to directly contribute their own certificate chains or interested third parties, however because in stir eco-systems that generally consist of regulated entities or are authorized to be assigned telephone number resources, this does not seem to be a likely scenario. Generally, many stir eco-systems have a controlled set of CAs that are authorized to participate as valid trust anchors. It is required that each chain ends with a trust anchor that is accepted by the log which would include those authorized trust anchors or a subset of them. When a chain is accepted by a log, a signed timestamp is returned, which is later used to provide evidence to STIR verification services (VS), defined in {{RFC8224}}, that the chain has been submitted. A VS can thus require that all certificates they accept as valid are accompanied by signed timestamps.
+CT log(s) contains certificate chains, which can be submitted by any CA authorized in a STIR eco-system. It is expected that these CAs will contribute all their newly issued certificates to one or more logs.  Note, in {{RFC9162}} it is possible for certificate holders to directly contribute their own certificate chains or interested third parties, however because in stir eco-systems that generally consist of regulated entities or those that are authorized to be assigned telephone number resources, this does not seem to be a likely scenario. Generally, many stir eco-systems have a controlled set of CAs that are authorized to participate as valid trust anchors. It is required that each chain ends with a trust anchor that is accepted by the log which would include those authorized trust anchors or a subset of them. When a chain is accepted by a log, a signed timestamp is returned, which is later used to provide evidence to STIR verification services (VS), defined in {{RFC8224}}, that the chain has been submitted. A VS can thus require that all certificates they accept as valid are accompanied by signed timestamps.
 
 Those concerned about mis-issuance of stir certificates can monitor the logs, asking them regularly for all new entries, and can thus check whether the providers or telephone numbers for which they are responsible have had certificates issued that they did not expect. What they do with this information, particularly when they find that a mis-issuance has happened, is beyond the scope of this document. However, broadly speaking, because many existing STI ecosystems have a connection to regulated and industry environments that govern the issuance of STI certificates, they can invoke existing mechanisms for dealing with issues such as mis-issued certificates, such as working with the CA to get the certificate revoked or with maintainers of trust anchor lists to get the CA removed.
 
@@ -94,25 +95,35 @@ If a log accepts a submission, it will return a Signed Certificate Timestamp (SC
 
 ## Certificates
 
-Any entity can submit a certificate (Section 5.1 of {{RFC9162}}) to a log. Since it is anticipated that verification services could reject certificates that are not logged, it is expected that certificate issuers and subjects will be strongly motivated to submit them.
+Any entity, generally a STIR CA can submit {{RFC8226}} defined certificates or {{RFC9060}} defined delegate certificates or similarly defined STIR certificates to a log. Since it is anticipated that verification services could reject certificates that are not logged, it is expected that certificate issuers and subjects will be strongly motivated to submit them.
 
 # Log Format and Operation
 
-A log is a single, append-only Merkle Tree of submitted certificate entries.  Log procedures MUST follow log format and operation procedures defined in Section 4 of {{RFC9162}}.
-
-Author note: Do we need a separate IANA registry for Log OIDs specific to STI eco-system?
-
-# Log Client Messages
-
-Log Client Messages and API MUST follow same protocols, formats and procedures as described in Section 5 of  {{RFC9162}}
+A log is a single, append-only log of submitted certificate entries.  Log procedures are RECOMMENDED to follow similar procedures and formats defined in Section 4 of {{RFC9162}}, but in general only are required to follow the API interfaces defined in this document.
 
 # STIR Authentication Services
 
-STIR Authentication Services {{RFC8224}} MUST present on or more SCTs from one or more logs by the inclusion of the stir certificate that has CT information encoded as an extension in the X.509v3 certificate (see Section 7.1.2 of {{RFC9162}}).
+STIR Authentication Services {{RFC8224}} MUST present one or more SCTs from one or more logs by the inclusion of an array of SCTs as a 'sct' claim in the signed PASSporT defined in the next section of this document.
 
-# STI Certification Authorities
+# PASSporT Claim "sct" Definition and Usage {#sct_define}
 
-A certification authority MUST include a Transparency Information X.509v3 extension in a certificate.  All included SCTs and inclusion proofs MUST be for a precertificate that corresponds to this certificate.
+This document defines a new JSON Web Token claim for "sct", Signed Certificate Timestamp, the value of which is a JSON object that can contains an array of one or more Signed Certificate Timestamps defined in {{RFC9162}}, Section 4.8 corresponding to SCTs provided by different CT logs the certificate may have been submitted to.
+
+Example PASSporT with SCT Claim:
+
+~~~~~~~~~~~~~
+{
+   "alg": "ES256",
+   "typ": "passport",
+   "x5u": "https://sti-ca.example.com/certificates/stica-cert.pem",
+   "iat": 1577836800,
+   "orig": "+12155551212",
+   "dest": "+12155559876",
+   "attest": "A",
+   "origid": "123e4567-e89b-12d3-a456-426614174000",
+   "sct": ["base64-encoded-sct1", "base64-encoded-sct2"]
+}
+~~~~~~~~~~~~~
 
 # Clients
 
@@ -158,22 +169,6 @@ Expected Response:
 4. STI-AS Includes SCTs in `sct` Claim:
 
 - Step 6: The STI-AS includes the SCTs in the `sct` claim of the PASSporT (Personal Assertion Token) when signing a call identity.
-
-Example PASSporT with SCT Claim:
-
-~~~~~~~~~~~~~
-{
-   "alg": "ES256",
-   "typ": "passport",
-   "x5u": "https://sti-ca.example.com/certificates/stica-cert.pem",
-   "iat": 1577836800,
-   "orig": "+12155551212",
-   "dest": "+12155559876",
-   "attest": "A",
-   "origid": "123e4567-e89b-12d3-a456-426614174000",
-   "sct": ["base64-encoded-sct1", "base64-encoded-sct2"]
-}
-~~~~~~~~~~~~~
 
 - Step 7: If some logs are slow to respond, their SCTs may be skipped to ensure timely processing.
 
@@ -328,7 +323,7 @@ for entry in entries:
 
 6. Alarm and Reporting:
 
-- Step 7: If a mis-issuance is detected, raise an alarm and log the details for further investigation. Optionally, notify relevant stakeholders.
+- Step 7: If a mis-issuance is detected, raise an alarm and log the details for further investigation and notify relevant stakeholders to rectify any confirmed mis-issuance.
 
 7. Maintain State and Continuity:
 
@@ -342,9 +337,19 @@ Auditing ensures that the current published state of a log is reachable from pre
 
 TODO Security
 
-# IANA Considerations
+# IANA Considerations {#IANA}
 
-This document has no IANA actions, yet.
+## JSON Web Token Claim
+
+This document requests that the IANA add three new claims to the JSON Web Token Claims registry as defined in {{RFC7519}}.
+
+Claim Name: "sct"
+
+Claim Description: Signed Certificate Timestamp
+
+Change Controller: IESG
+
+Specification Document(s): [RFCThis]
 
 --- back
 
