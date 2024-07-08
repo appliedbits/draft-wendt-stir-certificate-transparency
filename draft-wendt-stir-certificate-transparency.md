@@ -126,117 +126,122 @@ There are various different functions clients of logs might perform. In this doc
 
 ## Submission and Handling of SCTs
 
-1. STI-CA/STI-SCA Submits STI Certificate to Transparency Logs:
+1. STI-CA/STI-SCA Submits STI Certificate to Transparency Logs
 
-- Step 1: The STI Certificate Authority (STI-CA) or STI Subordinate Certificate Authority (STI-SCA) issues a new STI certificate.
-- Step 2: The STI-CA/STI-SCA submits the issued STI certificate to one or more transparency logs using the 'submit-entry' API.
+   Step 1: The STI Certificate Authority (STI-CA) or STI Subordinate Certificate Authority (STI-SCA) issues a new STI certificate.
 
-~~~~~~~~~~~~~
-API Call:
-POST <Base URL>/ct/v2/submit-entry
-Content-Type: application/json
-{
-   "submission": "base64-encoded-sti-certificate",
-   "type": 1,
-   "chain": [
-      "base64-encoded-CA-cert-1",
-      "base64-encoded-CA-cert-2"
-   ]
-}
+   Step 2: The STI-CA/STI-SCA submits the issued STI certificate to one or more transparency logs using the 'submit-entry' API.
 
-Expected Response:
-{
-   "sct": "base64-encoded-sct",
-   "sth": "base64-encoded-signed_tree_head",
-   "inclusion": "base64-encoded-inclusion_proof"
-}
-~~~~~~~~~~~~~
+   ~~~~~~~~~~~~~
+      API Call:
+      POST <Base URL>/ct/v2/submit-entry
+      Content-Type: application/json
+      {
+         "submission": "base64-encoded-sti-certificate",
+         "type": 1,
+         "chain": [
+            "base64-encoded-CA-cert-1",
+            "base64-encoded-CA-cert-2"
+         ]
+      }
+
+      Expected Response:
+      {
+         "sct": "base64-encoded-sct",
+         "sth": "base64-encoded-signed_tree_head",
+         "inclusion": "base64-encoded-inclusion_proof"
+      }
+   ~~~~~~~~~~~~~
 
 2. Transparency Log Generates SCT:
 
-- Step 3: Each transparency log processes the submission and generates a Signed Certificate Timestamp (SCT).
-- Step 4: The transparency log returns the SCT to the STI-CA/STI-SCA.
+   Step 3: Each transparency log processes the submission and generates a Signed Certificate Timestamp (SCT).
+
+   Step 4: The transparency log returns the SCT to the STI-CA/STI-SCA.
 
 3. STI-CA/STI-SCA Passes SCT(s) to STI-AS:
 
-- Step 5: The STI-CA/STI-SCA passes the generated SCT(s) to the STI Authentication Service (STI-AS). This can be done via a non-prescriptive method such as including SCT(s) in the certificate issuance metadata or through a separate communication channel.
+   Step 5: The STI-CA/STI-SCA passes the generated SCT(s) to the STI Authentication Service (STI-AS). This can be done via a non-prescriptive method such as including SCT(s) in the certificate issuance metadata or through a separate communication channel.
 
 4. STI-AS Includes SCTs in `sct` Claim:
 
-- Step 6: The STI-AS includes the SCTs in the `sct` claim of the PASSporT (Personal Assertion Token) when signing a call identity.
+   Step 6: The STI-AS includes the SCTs in the `sct` claim of the PASSporT (Personal Assertion Token) when signing a call identity.
 
-- Step 7: If some logs are slow to respond, their SCTs may be skipped to ensure timely processing.
+   Step 7: If some logs are slow to respond, their SCTs may be skipped to ensure timely processing.
 
 5. STI-VS Verifies PASSporT and SCTs:
 
-- Step 8: The STI Verification Service (STI-VS) receives the signed PASSporT from the STI-AS.
-- Step 9: The STI-VS verifies that the PASSporT contains matching SCTs for the certificate it was signed with. The STI-VS checks for the presence of SCT(s) and trusts them for quick verification.
-- Step 10: In the background, a separate process can periodically gather and verify the SCTs with the transparency logs to ensure their validity and integrity.
+   Step 8: The STI Verification Service (STI-VS) receives the signed PASSporT from the STI-AS.
+
+   Step 9: The STI-VS verifies that the PASSporT contains matching SCTs for the certificate it was signed with. The STI-VS checks for the presence of SCT(s) and trusts them for quick verification.
+
+   Step 10: In the background, a separate process can periodically gather and verify the SCTs with the transparency logs to ensure their validity and integrity.
 
 ## Example API Calls for Step-by-Step Flow
 
 1. Submit Entry to Log:
 
-~~~~~~~~~~~~~
-POST <Base URL>/ct/v2/submit-entry
-Content-Type: application/json
-{
-   "submission": "base64-encoded-sti-certificate",
-   "type": 1,
-   "chain": [
-      "base64-encoded-CA-cert-1",
-      "base64-encoded-CA-cert-2"
-   ]
-}
-~~~~~~~~~~~~~
+   ~~~~~~~~~~~~~
+      POST <Base URL>/ct/v2/submit-entry
+      Content-Type: application/json
+      {
+         "submission": "base64-encoded-sti-certificate",
+         "type": 1,
+         "chain": [
+            "base64-encoded-CA-cert-1",
+            "base64-encoded-CA-cert-2"
+         ]
+      }
+   ~~~~~~~~~~~~~
 
 2. Retrieve Latest STH (optional for background process):
 
-~~~~~~~~~~~~~
-GET <Base URL>/ct/v2/get-sth
+   ~~~~~~~~~~~~~
+      GET <Base URL>/ct/v2/get-sth
 
-Expected Response:
-{
-   "sth": "base64-encoded-signed_tree_head_v2"
-}
-~~~~~~~~~~~~~
+      Expected Response:
+      {
+         "sth": "base64-encoded-signed_tree_head_v2"
+      }
+   ~~~~~~~~~~~~~
 
 3. Retrieve Merkle Inclusion Proof by Leaf Hash (optional for background process):
 
-~~~~~~~~~~~~~
-GET <Base URL>/ct/v2/get-proof-by-hash?hash=base64-encoded-hash&tree_size=tree-size
+   ~~~~~~~~~~~~~
+      GET <Base URL>/ct/v2/get-proof-by-hash?hash=base64-encoded-hash
+            &tree_size=tree-size
 
-Expected Response:
-{
-   "inclusion": "base64-encoded-inclusion_proof_v2",
-   "sth": "base64-encoded-signed_tree_head_v2"
-}
-~~~~~~~~~~~~~
+      Expected Response:
+      {
+         "inclusion": "base64-encoded-inclusion_proof_v2",
+         "sth": "base64-encoded-signed_tree_head_v2"
+      }
+   ~~~~~~~~~~~~~
 
 4. Retrieve Entries and STH from Log (optional for background process):
 
-~~~~~~~~~~~~~
-GET <Base URL>/ct/v2/get-entries?start=0&end=99
+   ~~~~~~~~~~~~~
+      GET <Base URL>/ct/v2/get-entries?start=0&end=99
 
-Expected Response:
-{
-   "entries": [
+      Expected Response:
       {
-         "log_entry": "base64-encoded-log-entry",
-         "submitted_entry": {
-            "submission": "base64-encoded-sti-certificate",
-            "chain": [
-               "base64-encoded-CA-cert-1",
-               "base64-encoded-CA-cert-2",
-               "base64-encoded-trust-anchor-cert"
-            ]
-         },
-         "sct": "base64-encoded-sct"
+         "entries": [
+            {
+               "log_entry": "base64-encoded-log-entry",
+               "submitted_entry": {
+                  "submission": "base64-encoded-sti-certificate",
+                  "chain": [
+                     "base64-encoded-CA-cert-1",
+                     "base64-encoded-CA-cert-2",
+                     "base64-encoded-trust-anchor-cert"
+                  ]
+               },
+               "sct": "base64-encoded-sct"
+            }
+         ],
+         "sth": "base64-encoded-signed_tree_head_v2"
       }
-   ],
-   "sth": "base64-encoded-signed_tree_head_v2"
-}
-~~~~~~~~~~~~~
+   ~~~~~~~~~~~~~
 
 ## Monitor
 
@@ -246,83 +251,86 @@ Monitors in the STIR/SHAKEN Certificate Transparency (CT) framework play a cruci
 
 1. Initialize Monitor:
 
-- Step 1: Set up the Monitor to periodically query the transparency logs for new entries. The Monitor must be configured with the base URL of each log it intends to monitor.
-- Step 2: Configure the Monitor with a list of telephone numbers (TNs) and associated entities to track.
+   Step 1: Set up the Monitor to periodically query the transparency logs for new entries. The Monitor must be configured with the base URL of each log it intends to monitor.
+
+   Step 2: Configure the Monitor with a list of telephone numbers (TNs) and associated entities to track.
 
 2. Retrieve Latest STH:
 
-- Step 3: The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
+   Step 3: The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
 
-API Call:
+   ~~~~~~~~~~~~~
+      API Call:
 
-~~~~~~~~~~~~~
-GET <Base URL>/ct/v2/get-sth
+      GET <Base URL>/ct/v2/get-sth
 
-Expected Response:
-{
-   "sth": "base64-encoded-signed_tree_head_v2"
-}
-~~~~~~~~~~~~~
+      Expected Response:
+      {
+         "sth": "base64-encoded-signed_tree_head_v2"
+      }
+   ~~~~~~~~~~~~~
 
 3. Retrieve New Entries from Log:
 
-- Step 4: Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
+   Step 4: Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
 
-API Call:
+   ~~~~~~~~~~~~~
+      API Call:
 
-~~~~~~~~~~~~~
-GET <Base URL>/ct/v2/get-entries?start=last_known_index&end=current_sth_index
+      GET <Base URL>/ct/v2/get-entries?start=last_known_index
+         &end=current_sth_index
 
-Expected Response:
-{
-   "entries": [
+      Expected Response:
       {
-         "log_entry": "base64-encoded-log-entry",
-         "submitted_entry": {
-            "submission": "base64-encoded-sti-certificate",
-            "chain": [
-               "base64-encoded-CA-cert-1",
-               "base64-encoded-CA-cert-2",
-               "base64-encoded-trust-anchor-cert"
-            ]
-         },
-         "sct": "base64-encoded-sct"
+         "entries": [
+            {
+               "log_entry": "base64-encoded-log-entry",
+               "submitted_entry": {
+                  "submission": "base64-encoded-sti-certificate",
+                  "chain": [
+                     "base64-encoded-CA-cert-1",
+                     "base64-encoded-CA-cert-2",
+                     "base64-encoded-trust-anchor-cert"
+                  ]
+               },
+               "sct": "base64-encoded-sct"
+            }
+         ],
+         "sth": "base64-encoded-signed_tree_head_v2"
       }
-   ],
-   "sth": "base64-encoded-signed_tree_head_v2"
-}
-~~~~~~~~~~~~~
+   ~~~~~~~~~~~~~
 
 4. Decode and Verify Certificates:
 
-- Step 5: Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
+   Step 5: Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
 
 5. Check for Mis-issuance:
 
-- Step 6: Compare the TNAuthList and entity name from the newly issued certificate with the Monitor's configured list. Alarm if a certificate is issued in the name of a different entity for the same TNs.
+   Step 6: Compare the TNAuthList and entity name from the newly issued certificate with the Monitor's configured list. Alarm if a certificate is issued in the name of a different entity for the same TNs.
 
-~~~~~~~~~~~~~
-Example Pseudocode:
+   ~~~~~~~~~~~~~
+      Example Pseudocode:
 
-for entry in entries:
-   certificate = decode_base64(entry["submitted_entry"]["submission"])
-   tn_auth_list = extract_tn_auth_list(certificate)
-   entity_name = extract_entity_name(certificate)
+      for entry in entries:
+         certificate = decode_base64(entry["submitted_entry"] \
+            ["submission"])
+         tn_auth_list = extract_tn_auth_list(certificate)
+         entity_name = extract_entity_name(certificate)
 
-   for tn in tn_auth_list:
-      if tn in monitor_configured_tn_list:
-         if monitor_configured_tn_list[tn] != entity_name:
-               raise Alarm(f"Mis-issued Certificate: {tn} assigned to
-               {entity_name}")
-~~~~~~~~~~~~~
+         for tn in tn_auth_list:
+            if tn in monitor_configured_tn_list:
+               if monitor_configured_tn_list[tn] != entity_name:
+                     raise Alarm(f"Mis-issued Certificate: {tn} assigned \
+                        to {entity_name}")
+   ~~~~~~~~~~~~~
 
 6. Alarm and Reporting:
 
-- Step 7: If a mis-issuance is detected, raise an alarm and log the details for further investigation and notify relevant stakeholders to rectify any confirmed mis-issuance.
+   Step 7: If a mis-issuance is detected, raise an alarm and log the details for further investigation and notify relevant stakeholders to rectify any confirmed mis-issuance.
 
 7. Maintain State and Continuity:
 
-- Step 8: Update the Monitor's last known state with the current STH index to ensure continuity in monitoring.
+   Step 8: Update the Monitor's last known state with the current STH index to ensure continuity in monitoring.
 
 ## Auditing
 
