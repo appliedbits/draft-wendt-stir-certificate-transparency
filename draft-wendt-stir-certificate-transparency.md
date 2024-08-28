@@ -66,7 +66,7 @@ This document describes a framework for the use of the Certificate Transparency 
 
 # Introduction
 
-Certificate Transparency (CT) aims to mitigate the problem of mis-issued certificates by providing append-only logs of issued certificates. The logs do not themselves prevent mis-issuance, but ensure that interested parties (particularly those named in certificates or certificate chains) can detect such mis-issuance. {{RFC9162}} describes the core protocols and mechanisms for use of CT for the purposes of public TLS server certificates associated with a domain name as part of the public domain name system (DNS). This document describes a conceptually similar framework that directly borrows concepts like transparency receipts in the form of SCPs but also is more opinionated about the process and procedures for when the receipt is generated and how it is used outside of the certificate.  This framework is defined for the specific use with Secure Telephone Identity (STI) certificates {{RFC8226}} and delegate certificates {{RFC9060}}.
+Certificate Transparency (CT) aims to mitigate the problem of mis-issued certificates by providing append-only logs of issued certificates. The logs do not themselves prevent mis-issuance, but ensure that interested parties (particularly those named in certificates or certificate chains) can detect such mis-issuance. {{RFC9162}} describes the core protocols and mechanisms for use of CT for the purposes of public TLS server certificates associated with a domain name as part of the public domain name system (DNS). This document describes a conceptually similar framework that directly borrows concepts like transparency receipts in the form of SCTs but also is more opinionated about the process and procedures for when the receipt is generated and how it is used outside of the certificate.  This framework is defined for the specific use with Secure Telephone Identity (STI) certificates {{RFC8226}} and delegate certificates {{RFC9060}}.
 
 Telephone numbers (TNs) and their management and assignment by telephone service providers and Responsible Organizations (RespOrgs) for toll-free numbers share many similarities to the Domain Name System (DNS) where there is a global uniqueness and established association of telephone numbers to regulatory jurisdictions that manage the allocation and assignment of telephone numbers under country codes and a set of numeric digits for routing telephone calls and messages over telephone networks. STI Certificates use a TNAuthList extension defined in {{RFC8226}} to specifically associate either telephone service providers or telephone numbers to the issuance of STI certificates and certificate change that are intended to represent the authorized right to use a telephone number. This trusted association can be establish via mechanisms such as Authority tokens for TNAuthList defined in {{RFC9448}}. Certificate transparency is generally meant to provide a publicly verifiable and auditable representation of the creation of certificates in order to establish transparency and trust to interested parties as part of a stir related eco-system.
 
@@ -87,38 +87,118 @@ CT log(s) contains certificate chains, which can be submitted by any CA authoriz
 
 Those concerned about mis-issuance of stir certificates can monitor the logs, asking them regularly for all new entries, and can thus check whether the providers or telephone numbers for which they are responsible have had certificates issued that they did not expect. What they do with this information, particularly when they find that a mis-issuance has happened, is beyond the scope of this document. However, broadly speaking, because many existing STI ecosystems have a connection to regulated and industry environments that govern the issuance of STI certificates, they can invoke existing mechanisms for dealing with issues such as mis-issued certificates, such as working with the CA to get the certificate revoked or with maintainers of trust anchor lists to get the CA removed.
 
-# Submitters
+# STI Certificate Transparency Framework
 
-Submitters submit certificates to logs for public auditing. In order to enable attribution of each logged certificate to its issuer, each submission MUST be accompanied by all additional certificates required to verify the chain up to an accepted trust anchor. The trust anchor (a root or intermediate CA certificate) MAY be omitted from the submission.
+This section describes the format and operational procedures for logs in the STI Certificate Transparency (CT) framework.
 
-If a log accepts a submission, it will return a Signed Certificate Timestamp (SCT) (see Section 4.8 {{RFC9162}}).
+## Log Entries
 
-## Certificates
+Logs in the STI CT framework are append-only structures that store entries in a Merkle Tree and use SHA-256 for data hashing. The entries consist of pre-certificates submitted by STI Certification Authorities (STI-CAs) or Subordinate Certification Authorities (STI-SCAs). The log entries help ensure that all issued STI certificates can be audited for legitimacy.
 
-Any entity, generally a STIR CA, can submit {{RFC8226}} defined certificates or {{RFC9060}} defined delegate certificates or similarly defined STIR certificates to a log. Since it is anticipated that verification services could reject certificates that are not logged, it is expected that certificate issuers and subjects will be strongly motivated to submit them.
+## Precertificate Submission
 
-# Log Format and Operation
+An STI-CA/STI-SCA submits a pre-certificate to a log before the actual STI certificate is issued. The pre-certificate submission must include all necessary intermediate certificates to validate the chain up to an accepted root certificate. The root certificate may be omitted from the submission.
 
-A log is a single, append-only, merkel-tree type of log of submitted certificate entries.  Log procedures are RECOMMENDED to follow similar procedures and formats defined in Section 4 of {{RFC9162}}, but in general only are required to follow the API interfaces defined in this document.
+When a pre-certificate is submitted:
 
-# STIR Authentication Services
+- The log verifies the chain of the pre-certificate up to a trusted root.
+- If valid, the log generates and returns a Signed Certificate Timestamp (SCT) to the submitter.
+- The SCT serves as a promise from the log that the pre-certificate will be included in the Merkle Tree within a defined Maximum Merge Delay (MMD).
 
-STIR Authentication Services {{RFC8224}} MUST present one or more SCTs from one or more logs by the inclusion of an array of SCTs as a 'sct' claim in the signed PASSporT defined in the next section of this document.
+Logs must publish a list of accepted root certificates, which aligns with those trusted in the STIR ecosystem. The inclusion of SCTs in the actual STI certificates is critical, as Verification Services (STI-VS) will only accept certificates that include valid SCTs.
 
-# PASSporT Claim "sct" Definition and Usage {#sct_define}
+## Log Entry Structure
 
-This document defines a new JSON Web Token claim for "sct", Signed Certificate Timestamp, the value of which is a JSON object that can contains an array of one or more Signed Certificate Timestamps defined in {{RFC9162}}, Section 4.8 corresponding to SCTs provided by different CT logs the certificate may have been submitted to.
-
-Example PASSporT with SCT Claim:
+Each log entry consists of the following components:
 
 ~~~~~~~~~~~~~
-{
-   "dest":{"tn":["12155550131"]},
-   "iat":"1443208345",
-   "orig":{"tn":"12155550121"},
-   "sct": ["base64-encoded-sct1", "base64-encoded-sct2"]
-}
+struct {
+    PrecertChainEntry entry;
+} LogEntry;
+
+opaque ASN.1Cert<1..2^24-1>;
+
+struct {
+    ASN.1Cert pre_certificate;
+    ASN.1Cert precertificate_chain<0..2^24-1>;
+} PrecertChainEntry;
 ~~~~~~~~~~~~~
+
+- pre_certificate: The pre-certificate submitted for auditing.
+- precertificate_chain: A chain of certificates required to verify the pre-certificate, including intermediate certificates but excluding the root certificate.
+
+Logs may impose a limit on the length of the certificate chain they will accept. The log verifies the validity of the pre-certificate chain up to an accepted root and, upon acceptance, stores the entire chain for future auditing.
+
+## Structure of the Signed Certificate Timestamp (SCT)
+
+The SCT is a data structure returned by the log when a pre-certificate is accepted. It is structured as follows:
+
+~~~~~~~~~~~~~
+struct {
+    Version sct_version;
+    LogID id;
+    uint64 timestamp;
+    digitally-signed struct {
+        Version sct_version;
+        SignatureType signature_type = certificate_timestamp;
+        uint64 timestamp;
+        PreCert signed_entry;
+        CtExtensions extensions;
+    };
+} SignedCertificateTimestamp;
+~~~~~~~~~~~~~
+
+- sct_version: The version of the SCT protocol, set to v1.
+- id: The SHA-256 hash of the log's public key.
+- timestamp: The timestamp of the SCT issuance.
+- signed_entry: Contains the PreCert structure, which includes the issuer's key hash and the TBSCertificate component of the pre-certificate.
+- extensions: Placeholder for future extensions.
+
+The SCT is included in the final STI certificate, and STI-VS services will check the presence and validity of SCTs to verify the legitimacy of the certificate.
+
+## Merkle Tree Structure
+
+Logs use a Merkle Tree structure, with each leaf corresponding to a MerkleTreeLeaf entry. The leaves are hashed to form the tree, which is continuously updated as new entries are added.
+
+~~~~~~~~~~~~~
+struct {
+    Version version;
+    MerkleLeafType leaf_type;
+    TimestampedEntry timestamped_entry;
+} MerkleTreeLeaf;
+
+struct {
+    uint64 timestamp;
+    PreCert signed_entry;
+    CtExtensions extensions;
+} TimestampedEntry;
+~~~~~~~~~~~~~
+
+- version: The protocol version, set to v1.
+- leaf_type: The type of the leaf, set to timestamped_entry.
+- timestamped_entry: Contains the timestamp and the pre-certificate data.
+
+The root hash of the Merkle Tree represents the state of the log at a given time and can be used to verify the inclusion of specific entries.
+
+## Signed Tree Head (STH)
+
+The log periodically signs the root of the Merkle Tree, producing a Signed Tree Head (STH), which ensures the integrity of the log over time.
+
+~~~~~~~~~~~~~
+digitally-signed struct {
+    Version version;
+    SignatureType signature_type = tree_hash;
+    uint64 timestamp;
+    uint64 tree_size;
+    opaque sha256_root_hash[32];
+} TreeHeadSignature;
+~~~~~~~~~~~~~
+
+- timestamp: The current time, ensuring it is more recent than the most recent SCT.
+- tree_size: The number of entries in the Merkle Tree.
+- sha256_root_hash: The root hash of the Merkle Tree.
+
+Logs must produce an STH within the Maximum Merge Delay (MMD) to confirm that all SCTs issued have been incorporated into the Merkle Tree. Auditors and monitors can use the STH to verify that the log is operating correctly and that no entries have been tampered with.
 
 # Clients
 
