@@ -250,7 +250,7 @@ These APIs are based on RFC 6962, which defines the Certificate Transparency pro
 
 Endpoint:
 
-- POST https://<log server>/stict/v1/add-pre-chain
+- POST https://\<log server\>/stict/v1/add-pre-chain
 
 Inputs:
 
@@ -270,7 +270,7 @@ This endpoint allows an STI-CA or STI-SCA to submit a pre-certificate chain to t
 
 Endpoint:
 
-- GET https://<log server>/stict/v1/get-sth
+- GET https://\<log server\>/stict/v1/get-sth
 
 Inputs:
 
@@ -289,7 +289,7 @@ This endpoint retrieves the latest state of the log, represented by the Signed T
 
 Endpoint:
 
-- GET https://<log server>/ct/v1/get-sth-consistency
+- GET https://\<log server\>/ct/v1/get-sth-consistency
 
 Inputs:
 
@@ -306,7 +306,7 @@ This endpoint allows clients to verify that the log has been consistently mainta
 
 Endpoint:
 
-- GET https://<log server>/stict/v1/get-proof-by-hash
+- GET https://\<log server\>/stict/v1/get-proof-by-hash
 
 Inputs:
 
@@ -324,7 +324,7 @@ This endpoint retrieves a Merkle audit proof, which can be used to verify that a
 
 Endpoint:
 
-- GET https://<log server>/stict/v1/get-entries
+- GET https://\<log server\>/stict/v1/get-entries
 
 Inputs:
 
@@ -343,7 +343,7 @@ This endpoint allows clients to retrieve a range of entries from the log, which 
 
 Endpoint:
 
-- GET https://<log server>/stict/v1/get-roots
+- GET https://\<log server\>/stict/v1/get-roots
 
 Inputs:
 
@@ -359,7 +359,7 @@ This endpoint provides a list of root certificates that the log accepts for veri
 
 Endpoint:
 
-- GET https://<log server>/stict/v1/get-entry-and-proof
+- GET https://\<log server\>/stict/v1/get-entry-and-proof
 
 Inputs:
 
@@ -402,11 +402,11 @@ Monitors in the STI-CT framework play a crucial role in maintaining the integrit
 
 2. Retrieve Latest STH:
    - The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
-   - API Call: GET https://<log server>/stict/v1/get-sth
+   - API Call: GET https://\<log server\>/stict/v1/get-sth
 
 3. Retrieve New Entries from Log:
    - Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
-   - API Call: GET https://<log server>/stict/v1/get-entries?start=last_known_index&end=current_sth_index
+   - API Call: GET https://\<log server\>/stict/v1/get-entries?start=last_known_index&end=current_sth_index
 
 4. Decode and Verify Certificates:
    - Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
@@ -422,7 +422,7 @@ Monitors in the STI-CT framework play a crucial role in maintaining the integrit
 
 8. STH Verification and Consistency Check:
    - After retrieving a new STH, verify the STH signature.
-   - If not keeping all log entries, fetch a consistency proof for the new STH with the previous STH (GET https://<log server>/stict/v1/get-sth-consistency) and verify it.
+   - If not keeping all log entries, fetch a consistency proof for the new STH with the previous STH (GET https://\<log server\>/stict/v1/get-sth-consistency) and verify it.
    - Go to Step 5 and repeat the process.
 
 ## Auditor
@@ -433,15 +433,15 @@ Auditors are responsible for verifying the consistency and correctness of the lo
 
 1. STH Verification:
    - Auditors can fetch STHs periodically and verify their signatures to ensure the log is maintaining its integrity.
-   - API Call: GET https://<log server>/stict/v1/get-sth
+   - API Call: GET https://\<log server\>/stict/v1/get-sth
 
 2. Consistency Proof Verification:
    - Auditors verify the consistency of a log over time by requesting a consistency proof between two STHs.
-   - API Call: GET https://<log server>/stict/v1/get-sth-consistency
+   - API Call: GET https://\<log server\>/stict/v1/get-sth-consistency
 
 3. Audit Proof Verification:
    - A certificate accompanied by an SCT can be verified against any STH dated after the SCT timestamp + the Maximum Merge Delay by requesting a Merkle audit proof.
-   - API Call: GET https://<log server>/stict/v1/get-proof-by-hash
+   - API Call: GET https://\<log server\>/stict/v1/get-proof-by-hash
 
 4. Cross-Checking Logs:
    - Auditors can cross-check entries across different logs by comparing SCTs and verifying that entries are consistently logged across the ecosystem.
