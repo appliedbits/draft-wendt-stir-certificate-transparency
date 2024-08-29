@@ -87,6 +87,46 @@ CT log(s) contains certificate chains, which can be submitted by any CA authoriz
 
 Those concerned about mis-issuance of stir certificates can monitor the logs, asking them regularly for all new entries, and can thus check whether the providers or telephone numbers for which they are responsible have had certificates issued that they did not expect. What they do with this information, particularly when they find that a mis-issuance has happened, is beyond the scope of this document. However, broadly speaking, because many existing STI ecosystems have a connection to regulated and industry environments that govern the issuance of STI certificates, they can invoke existing mechanisms for dealing with issues such as mis-issued certificates, such as working with the CA to get the certificate revoked or with maintainers of trust anchor lists to get the CA removed.
 
+# Terminology
+
+This section defines key terms used throughout the STI-CT framework to ensure clarity and consistency.
+
+## Authentication Service (STI-AS)
+A service that signs the identity of a telephone call using Secure Telephone Identity (STI) certificates, ensuring the authenticity of the caller information. It ensures that STI Certificates contain SCTs.
+
+## Certificate Transparency (CT)
+A framework designed to provide an open and verifiable log of issued certificates. It aims to detect and prevent the misuse or mis-issuance of certificates by maintaining append-only logs that can be audited by any interested party.
+
+## Delegate Certificate
+A type of STI certificate that associates a specific telephone number or a range of telephone numbers with a particular entity, typically used to delegate the right to use these numbers.
+
+## Log
+An append-only, cryptographically verifiable structure used in Certificate Transparency to record pre-certificate entries. Logs accept submissions, generate Signed Certificate Timestamps (SCTs), and maintain the integrity of the entries through a Merkle Tree structure.
+
+## Merkle Tree
+A cryptographic data structure used in logs to ensure the integrity and consistency of the entries. It is built by hashing individual log entries and combining them into a single root hash that represents the state of the entire log.
+
+## Precertificate
+A certificate issued by an STI-CA that is intended to be submitted to a Certificate Transparency log before the final certificate is issued. The pre-certificate includes a special extension (the poison extension) that prevents it from being used as a valid certificate on its own.
+
+## Signed Certificate Timestamp (SCT)
+A data structure provided by a Certificate Transparency log in response to a pre-certificate submission. The SCT serves as a promise from the log to include the submitted pre-certificate in the log within a specified time frame (Maximum Merge Delay). It is included in the final certificate to prove that it has been logged.
+
+## Secure Telephone Identity Certificate Authority (STI-CA)
+An entity responsible for issuing STI certificates in the Secure Telephone Identity ecosystem. The STI-CA can also issue pre-certificates, which are submitted to CT logs before the final certificate is issued.
+
+## Secure Telephone Identity Subordinate Certificate Authority (STI-SCA)
+An entity authorized by an STI-CA to issue STI certificates under the authority of the STI-CA. The STI-SCA can also issue pre-certificates for submission to CT logs.
+
+## Signed Tree Head (STH)
+A cryptographically signed data structure that represents the current state of a Certificate Transparency log. It includes the root hash of the Merkle Tree and the number of entries in the log, allowing auditors to verify the integrity and consistency of the log.
+
+## TBSCertificate (To Be Signed Certificate)
+A component of an X.509 certificate that contains all the information about the certificate except the actual digital signature. The TBSCertificate includes fields such as the version, serial number, issuer, validity period, subject, and the subject's public key information. This component is signed by the certificate authority (CA) to create the final certificate. In the context of Certificate Transparency, the TBSCertificate of a pre-certificate is submitted to the log for inclusion.
+
+## Verification Service (STI-VS)
+A service that verifies the authenticity of a telephone call by checking the validity of the PASSporT token, including verification that certificate contains valid SCTs.
+
 # STI Certificate Transparency Framework
 
 This section describes the format and operational procedures for logs in the STI Certificate Transparency (CT) framework.
