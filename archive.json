@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-08-29T01:21:47.001304+00:00",
+  "timestamp": "2024-09-01T01:41:07.649663+00:00",
   "repo": "appliedbits/draft-wendt-stir-certificate-transparency",
   "labels": [
     {
@@ -89,6 +89,48 @@
           "body": "",
           "createdAt": "2024-07-04T14:04:08Z",
           "updatedAt": "2024-07-04T14:04:08Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "id": "PR_kwDOLXaE2s553Mr7",
+      "title": "Updates based on our last meeting.",
+      "url": "https://github.com/appliedbits/draft-wendt-stir-certificate-transparency/pull/2",
+      "state": "MERGED",
+      "author": "robjsliwa",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "- Pre-certificate and inclusion of SCT in Certificate is now the way to add certificate chains to the log.\r\n- Updated APIs and Clients sections.\r\n- Added Terminology section.",
+      "createdAt": "2024-08-29T16:39:35Z",
+      "updatedAt": "2024-08-31T00:28:41Z",
+      "baseRepository": "appliedbits/draft-wendt-stir-certificate-transparency",
+      "baseRefName": "main",
+      "baseRefOid": "10154ab6e644f3083f93dd43f826a7749d69c6eb",
+      "headRepository": "appliedbits/draft-wendt-stir-certificate-transparency",
+      "headRefName": "sct",
+      "headRefOid": "ed9a3874e00e7e6c286901b253ca49067ce3f317",
+      "closedAt": "2024-08-31T00:28:41Z",
+      "mergedAt": "2024-08-31T00:28:41Z",
+      "mergedBy": "chriswendt",
+      "mergeCommit": {
+        "oid": "e96ed9c34e71e81c13255d9a50165858a1bfce14"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOLXaE2s6Hhbj8",
+          "commit": {
+            "abbreviatedOid": "ed9a387"
+          },
+          "author": "chriswendt",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-08-31T00:28:32Z",
+          "updatedAt": "2024-08-31T00:28:32Z",
           "comments": []
         }
       ]
