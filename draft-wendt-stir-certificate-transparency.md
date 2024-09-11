@@ -1,7 +1,7 @@
 ---
 title: "STI Certificate Transparency"
 abbrev: "STI CT"
-category: info
+category: std
 
 docname: draft-wendt-stir-certificate-transparency-latest
 submissiontype: IETF  # also: "independent", "editorial", "IAB", or "IRTF"
