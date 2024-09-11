@@ -5,7 +5,7 @@ category: info
 
 docname: draft-wendt-stir-certificate-transparency-latest
 submissiontype: IETF  # also: "independent", "editorial", "IAB", or "IRTF"
-number: 02
+number: 
 date:
 consensus: true
 v: 3
@@ -46,13 +46,11 @@ author:
     country: US
 
 normative:
-  RFC7519:
+  RFC6962:
   RFC8224:
-  RFC8225:
   RFC8226:
   RFC9060:
   RFC9118:
-  RFC9162:
   RFC9448:
 
 informative:
@@ -66,13 +64,13 @@ This document describes a framework for the use of the Certificate Transparency 
 
 # Introduction
 
-Certificate Transparency (CT) aims to mitigate the problem of mis-issued certificates by providing append-only logs of issued certificates. The logs do not themselves prevent mis-issuance, but ensure that interested parties (particularly those named in certificates or certificate chains) can detect such mis-issuance. {{RFC9162}} describes the core protocols and mechanisms for use of CT for the purposes of public TLS server certificates associated with a domain name as part of the public domain name system (DNS). This document describes a conceptually similar framework that directly borrows concepts like transparency receipts in the form of SCTs but also is more opinionated about the process and procedures for when the receipt is generated and how it is used outside of the certificate.  This framework is defined for the specific use with Secure Telephone Identity (STI) certificates {{RFC8226}} and delegate certificates {{RFC9060}}.
+Certificate Transparency (CT) aims to mitigate the problem of mis-issued certificates by providing append-only logs of issued certificates. The logs do not themselves prevent mis-issuance, but ensure that interested parties (particularly those named in legitimate certificates or certificate chains) can detect such mis-issuance. {{RFC6962}} describes the core protocols and mechanisms for use of CT for the purposes of public TLS server certificates associated with a domain name as part of the public domain name system (DNS). This document describes a conceptually similar framework that directly borrows concepts like transparency receipts in the form of SCTs and how they are used in certificates and its specific use as part of the larger STIR framework for call authentication.  This framework is defined for the specific use with both Secure Telephone Identity (STI) certificates {{RFC8226}} and delegate certificates {{RFC9060}}.
 
-Telephone numbers (TNs) and their management and assignment by telephone service providers and Responsible Organizations (RespOrgs) for toll-free numbers share many similarities to the Domain Name System (DNS) where there is a global uniqueness and established association of telephone numbers to regulatory jurisdictions that manage the allocation and assignment of telephone numbers under country codes and a set of numeric digits for routing telephone calls and messages over telephone networks. STI Certificates use a TNAuthList extension defined in {{RFC8226}} to specifically associate either telephone service providers or telephone numbers to the issuance of STI certificates and certificate change that are intended to represent the authorized right to use a telephone number. This trusted association can be establish via mechanisms such as Authority tokens for TNAuthList defined in {{RFC9448}}. Certificate transparency is generally meant to provide a publicly verifiable and auditable representation of the creation of certificates in order to establish transparency and trust to interested parties as part of a stir related eco-system.
+Telephone numbers (TNs) and their management and assignment by telephone service providers and Responsible Organizations (RespOrgs) for toll-free numbers share many similarities to the Domain Name System (DNS) where there is a global uniqueness and established association of telephone numbers to regulatory jurisdictions that manage the allocation and assignment of telephone numbers under country codes and a set of numeric digits for routing telephone calls and messages over telephone networks. STI Certificates use a TNAuthList extension defined in {{RFC8226}} to specifically associate either telephone service providers or telephone numbers to the issuance of STI certificates and certificate change that are intended to represent the authorized right to use a telephone number. This trusted association can be establish via mechanisms such as Authority tokens for TNAuthList defined in {{RFC9448}}. Certificate transparency and the concept of transparency is generally meant to provide a publicly verifiable and auditable representation of the creation of certificates in order to establish transparency and trust to interested parties as part of a stir related eco-system.
 
-There is three primary actors in the certificate transparency framework. There is the STI Certification Authorities (CAs) that submit all certificates to be issued to one or more log services. The log services are network services that implement the protocol operations for submissions of STI certificates and subsequent queries. They are hosted by interested parties in the STI ecosystem and can accept certificate log submissions from any other CA participant. The second role is the monitors that play the role of monitoring the CT logs to check for potential mis-issuance as well as auditing of the log services. This role can be played by any STI ecosystem participant interested in the trust of the ecosystem or the integrity of the telephone number or provider level certificates produced in the eco-system. CT provides a mechanism of a receipt or Signed Certificate Timestamp (SCT) that is provided as a result of submitting a certificate to the append-only log. The third actor role in the certificate transparency framework is the eco-system participants that can send and receive receipt(s) or SCT(s) to prove and validate that a certificate was submitted to a log(s) and optionally query the log directly for further validation.
+There is three primary actors in the certificate transparency framework. There is the STI Certification Authorities (CAs) that submit all certificates to be issued to one or more transparency append-only log services. The log services are network services that implement the protocol operations for submissions of STI certificates and subsequent queries. They are hosted by interested parties in the STI ecosystem and can accept certificate log submissions from any other CA participant. The second role is the monitors that play the role of monitoring the CT logs to check for potential mis-issuance as well as auditing of the log services. This role can be played by any STI ecosystem participant interested in the trust of the ecosystem or the integrity of the telephone number or provider level certificates produced in the eco-system. CT provides a mechanism of a receipt or Signed Certificate Timestamp (SCT) that is provided as a result of submitting a certificate to the append-only log. The third actor role in the certificate transparency framework is the eco-system participants that can send and receive receipt(s) or SCT(s) to prove and validate that a certificate was submitted to a log(s) and optionally query the log directly for further validation.
 
-The details that follow in this document will detail the specific protocols and framework for Certificate Transparency associated with STI certificates. Most of the details borrow many of the concepts of certificate transparency defined in {{RFC9162}} used in Web PKI environments, but provides a specific framework designed for STI certificates and their specific issuance and usage in a telecommunications environments.
+The details that follow in this document will detail the specific protocols and framework for Certificate Transparency associated with STI certificates. Most of the details borrow many of the concepts of certificate transparency defined in {{RFC6962}}}} used in web browser and web PKI environments, but provides a specific framework designed for STI certificates and their specific issuance and usage in a telecommunications and telephone number dependent eco-system.
 
 This general mechanism could also be used for transparently logging other important stir related metadata associations perhaps via JWTClaimConstraints defined in {{RFC8226}} and {{RFC9118}} or other ways defined in potential future extensions of this document.
 
@@ -83,22 +81,22 @@ This general mechanism could also be used for transparently logging other import
 
 # The Use of Certificate Transparency for STI Certificates
 
-CT log(s) contains certificate chains, which can be submitted by any CA authorized in a STIR eco-system. It is expected that these CAs will contribute all their newly issued certificates to one or more logs.  Note, in {{RFC9162}} it is possible for certificate holders to directly contribute their own certificate chains or interested third parties, however because in stir eco-systems that generally consist of entities that are authorized to be assigned telephone number resources, this does not seem to be a likely scenario. Generally, many stir eco-systems have a controlled set of CAs that are authorized to participate as valid trust anchors. It is required that each chain ends with a trust anchor that is accepted by the log which would include those authorized trust anchors or a subset of them. When a chain is accepted by a log, a signed timestamp is returned, which is later used to provide evidence to STIR verification services (VS), defined in {{RFC8224}}, that the chain has been submitted. A VS can thus require that all certificates they accept as valid are accompanied by signed timestamps.
+CT log(s) contains certificate chains, which can be submitted by any CA authorized in a STIR eco-system. It is expected that these CAs will contribute all their newly issued certificates to one or more logs.  Note, in {{RFC6962}} it is possible for certificate holders to directly contribute their own certificate chains or interested third parties, however because in stir eco-systems that generally consist of entities that are authorized to be assigned telephone number resources, this does not seem to be a likely scenario. Generally, many stir eco-systems have a controlled set of CAs that are authorized to participate as valid trust anchors. It is required that each chain ends with a trust anchor that is accepted by the log which would include those authorized trust anchors or a subset of them. When a chain is accepted by a log, a signed timestamp is returned, which is later used to provide evidence to STIR verification services (VS), defined in {{RFC8224}}, that the chain has been submitted. A VS can thus require that all certificates they accept as valid are accompanied by signed timestamps.
 
-Those concerned about mis-issuance of stir certificates can monitor the logs, asking them regularly for all new entries, and can thus check whether the providers or telephone numbers for which they are responsible have had certificates issued that they did not expect. What they do with this information, particularly when they find that a mis-issuance has happened, is beyond the scope of this document. However, broadly speaking, because many existing STI ecosystems have a connection to regulated and industry environments that govern the issuance of STI certificates, they can invoke existing mechanisms for dealing with issues such as mis-issued certificates, such as working with the CA to get the certificate revoked or with maintainers of trust anchor lists to get the CA removed.
+Those concerned about mis-issuance of STIR certificates can monitor the logs, asking them regularly for all new entries, and can thus check whether the service provider codes or telephone numbers for which they are responsible have had certificates issued that they did not expect. What they do with this information, particularly when they find that a mis-issuance has happened, is beyond the scope of this document. However, broadly speaking, because many existing STI ecosystems have a connection to regulated and industry environments that govern the issuance of STI certificates, they can invoke existing mechanisms for dealing with issues such as mis-issued certificates, such as working with the CA to get the certificate revoked or with maintainers of trust anchor lists to get the CA removed.
 
 # Terminology
 
 This section defines key terms used throughout the STI-CT framework to ensure clarity and consistency.
 
-## Authentication Service (STI-AS)
+## Authentication Service (AS)
 A service that signs the identity of a telephone call using Secure Telephone Identity (STI) certificates, ensuring the authenticity of the caller information. It ensures that STI Certificates contain SCTs.
 
 ## Certificate Transparency (CT)
 A framework designed to provide an open and verifiable log of issued certificates. It aims to detect and prevent the misuse or mis-issuance of certificates by maintaining append-only logs that can be audited by any interested party.
 
 ## Delegate Certificate
-A type of STI certificate that associates a specific telephone number or a range of telephone numbers with a particular entity, typically used to delegate the right to use these numbers.
+A type of STI certificate that associates a specific telephone number or a range of telephone numbers with a particular entity used to delegate the right to use these numbers.
 
 ## Log
 An append-only, cryptographically verifiable structure used in Certificate Transparency to record pre-certificate entries. Logs accept submissions, generate Signed Certificate Timestamps (SCTs), and maintain the integrity of the entries through a Merkle Tree structure.
@@ -107,16 +105,16 @@ An append-only, cryptographically verifiable structure used in Certificate Trans
 A cryptographic data structure used in logs to ensure the integrity and consistency of the entries. It is built by hashing individual log entries and combining them into a single root hash that represents the state of the entire log.
 
 ## Precertificate
-A certificate issued by an STI-CA that is intended to be submitted to a Certificate Transparency log before the final certificate is issued. The pre-certificate includes a special extension (the poison extension) that prevents it from being used as a valid certificate on its own.
+A certificate issued by an CA that is intended to be submitted to a Certificate Transparency log before the final certificate is issued. The pre-certificate includes a special extension (the poison extension) that prevents it from being used as a valid certificate on its own.
 
 ## Signed Certificate Timestamp (SCT)
 A data structure provided by a Certificate Transparency log in response to a pre-certificate submission. The SCT serves as a promise from the log to include the submitted pre-certificate in the log within a specified time frame (Maximum Merge Delay). It is included in the final certificate to prove that it has been logged.
 
-## Secure Telephone Identity Certificate Authority (STI-CA)
-An entity responsible for issuing STI certificates in the Secure Telephone Identity ecosystem. The STI-CA can also issue pre-certificates, which are submitted to CT logs before the final certificate is issued.
+## STI Certification Authority (STI-CA)
+An entity responsible for issuing STI certificates in the Secure Telephone Identity ecosystem. The CA can also issue pre-certificates, which are submitted to CT logs before the final certificate is issued.
 
-## Secure Telephone Identity Subordinate Certificate Authority (STI-SCA)
-An entity authorized by an STI-CA to issue STI certificates under the authority of the STI-CA. The STI-SCA can also issue pre-certificates for submission to CT logs.
+## STI Subordinate Certification Authority (STI-SCA)
+An entity authorized by an CA to issue STI certificates under the authority of the STI-CA. The STI-SCA can also issue pre-certificates for submission to CT logs.
 
 ## Signed Tree Head (STH)
 A cryptographically signed data structure that represents the current state of a Certificate Transparency log. It includes the root hash of the Merkle Tree and the number of entries in the log, allowing auditors to verify the integrity and consistency of the log.
@@ -124,7 +122,7 @@ A cryptographically signed data structure that represents the current state of a
 ## TBSCertificate (To Be Signed Certificate)
 A component of an X.509 certificate that contains all the information about the certificate except the actual digital signature. The TBSCertificate includes fields such as the version, serial number, issuer, validity period, subject, and the subject's public key information. This component is signed by the certificate authority (CA) to create the final certificate. In the context of Certificate Transparency, the TBSCertificate of a pre-certificate is submitted to the log for inclusion.
 
-## Verification Service (STI-VS)
+## Verification Service (VS)
 A service that verifies the authenticity of a telephone call by checking the validity of the PASSporT token, including verification that certificate contains valid SCTs.
 
 # STI Certificate Transparency Framework
@@ -194,7 +192,7 @@ struct {
 - signed_entry: Contains the PreCert structure, which includes the issuer's key hash and the TBSCertificate component of the pre-certificate.
 - extensions: Placeholder for future extensions.
 
-The SCT is included in the final STI certificate, and STI-VS services will check the presence and validity of SCTs to verify the legitimacy of the certificate.
+The SCT is included in the final STI certificate, and VS services will check the presence and validity of SCTs to verify the legitimacy of the certificate.
 
 ## Merkle Tree Structure
 
@@ -244,7 +242,7 @@ Logs must produce an STH within the Maximum Merge Delay (MMD) to confirm that al
 
 This section outlines the API operations that clients of the STI-CT will use to interact with the logs. The APIs are designed to support the submission and verification of pre-certificates (precerts) within the STIR ecosystem. All operations are conducted over HTTPS and utilize JSON for data exchange.
 
-These APIs are based on RFC 6962, which defines the Certificate Transparency protocol. The APIs are designed to be specific for STIR ecosystem.
+These APIs are based on RFC 6962, which defines the Certificate Transparency protocol. The APIs are designed to be specific for STIR ecosystem certificates.
 
 ## Add Pre-certificate Chain to Log
 
@@ -382,13 +380,13 @@ This section describes various roles clients of STI-CT perform. Any inconsistenc
 
 Submitters in the STI-CT framework are typically STI Certification Authorities (STI-CAs) or Subordinate Certification Authorities (STI-SCAs). These entities submit pre-certificates to the log as described in the APIs section. The returned Signed Certificate Timestamp (SCT) can then be used to construct the final STI certificate, which includes one or more SCTs.
 
-## STI-AS/STI-VS Clients
+## AS/VS Clients
 
-STI-AS and STI-VS services interact with SCTs and the underlying logs to ensure the authenticity and validity of telephone calls.
+AS and VS services interact with SCTs and the underlying logs to ensure the authenticity and validity of telephone calls.
 
-- STI-AS: The Authentication Service should validate the SCT by computing the signature input from the SCT data as well as the certificate and verifying the signature using the corresponding log's public key. STI-AS must reject SCTs whose timestamps are in the future.
+- AS: The Authentication Service should use valid certificates that contain SCT(s). The SCT(s) can be validated by computing the signature input from the SCT data as well as the certificate and verifying the signature using the corresponding log's public key. AS MUST reject SCTs whose timestamps are in the future.
 
-- STI-VS: The Verification Service receives the signed PASSporT token and verifies that the included SCTs match the corresponding STI certificate. STI-VS should reject Certificates that do not have SCT(s).
+- VS: The Verification Service receives the signed PASSporT token and verifies that the included SCTs in the certificate used to sign the PASSporT. VS MUST reject Certificates that do not have valid SCT(s) and fail PASSporT validation.
 
 ## Monitor
 
@@ -427,7 +425,7 @@ Monitors in the STI-CT framework play a crucial role in maintaining the integrit
 
 ## Auditor
 
-Auditors are responsible for verifying the consistency and correctness of the log, ensuring that the log behaves according to the expected protocol. Auditors can operate as standalone services or as part of another client role, such as a monitor or an STI-VS.
+Auditors are responsible for verifying the consistency and correctness of the log, ensuring that the log behaves according to the expected protocol. Auditors can operate as standalone services or as part of another client role, such as a monitor or an VS.
 
 ### Auditor Functions
 
@@ -455,22 +453,11 @@ TODO Security
 
 # IANA Considerations {#IANA}
 
-## JSON Web Token Claim
-
-This document requests that the IANA add three new claims to the JSON Web Token Claims registry as defined in {{RFC7519}}.
-
-Claim Name: "sct"
-
-Claim Description: Signed Certificate Timestamp
-
-Change Controller: IESG
-
-Specification Document(s): [RFCThis]
+None at this time.
 
 --- back
 
 # Acknowledgments
 {:numbered="false"}
 
-The authors would like to thank the authors and contributors to the protocols and ideas around Certificate Transparency {{RFC9162}} which sets the basis for the STI eco-system to adopt in a very straight forward way, providing trust and transparency in the telephone number world.
-
+The authors would like to thank the authors and contributors to the protocols and ideas around Certificate Transparency {{RFC6962}} which sets the basis for the STI eco-system to adopt in a very straight forward way, providing trust and transparency in the telephone number world.
