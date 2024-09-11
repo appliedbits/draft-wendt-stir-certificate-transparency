@@ -5,7 +5,7 @@ category: std
 
 docname: draft-wendt-stir-certificate-transparency-latest
 submissiontype: IETF  # also: "independent", "editorial", "IAB", or "IRTF"
-number: 
+number:
 date:
 consensus: true
 v: 3
@@ -78,7 +78,6 @@ This general mechanism could also be used for transparently logging other import
 
 {::boilerplate bcp14-tagged}
 
-
 # The Use of Certificate Transparency for STI Certificates
 
 CT log(s) contains certificate chains, which can be submitted by any CA authorized in a STIR eco-system. It is expected that these CAs will contribute all their newly issued certificates to one or more logs.  Note, in {{RFC6962}} it is possible for certificate holders to directly contribute their own certificate chains or interested third parties, however because in stir eco-systems that generally consist of entities that are authorized to be assigned telephone number resources, this does not seem to be a likely scenario. Generally, many stir eco-systems have a controlled set of CAs that are authorized to participate as valid trust anchors. It is required that each chain ends with a trust anchor that is accepted by the log which would include those authorized trust anchors or a subset of them. When a chain is accepted by a log, a signed timestamp is returned, which is later used to provide evidence to STIR verification services (VS), defined in {{RFC8224}}, that the chain has been submitted. A VS can thus require that all certificates they accept as valid are accompanied by signed timestamps.
@@ -90,39 +89,51 @@ Those concerned about mis-issuance of STIR certificates can monitor the logs, as
 This section defines key terms used throughout the STI-CT framework to ensure clarity and consistency.
 
 ## Authentication Service (AS)
+
 A service that signs the identity of a telephone call using Secure Telephone Identity (STI) certificates, ensuring the authenticity of the caller information. It ensures that STI Certificates contain SCTs.
 
 ## Certificate Transparency (CT)
+
 A framework designed to provide an open and verifiable log of issued certificates. It aims to detect and prevent the misuse or mis-issuance of certificates by maintaining append-only logs that can be audited by any interested party.
 
 ## Delegate Certificate
+
 A type of STI certificate that associates a specific telephone number or a range of telephone numbers with a particular entity used to delegate the right to use these numbers.
 
 ## Log
+
 An append-only, cryptographically verifiable structure used in Certificate Transparency to record pre-certificate entries. Logs accept submissions, generate Signed Certificate Timestamps (SCTs), and maintain the integrity of the entries through a Merkle Tree structure.
 
 ## Merkle Tree
+
 A cryptographic data structure used in logs to ensure the integrity and consistency of the entries. It is built by hashing individual log entries and combining them into a single root hash that represents the state of the entire log.
 
 ## Precertificate
+
 A certificate issued by an CA that is intended to be submitted to a Certificate Transparency log before the final certificate is issued. The pre-certificate includes a special extension (the poison extension) that prevents it from being used as a valid certificate on its own.
 
 ## Signed Certificate Timestamp (SCT)
+
 A data structure provided by a Certificate Transparency log in response to a pre-certificate submission. The SCT serves as a promise from the log to include the submitted pre-certificate in the log within a specified time frame (Maximum Merge Delay). It is included in the final certificate to prove that it has been logged.
 
 ## STI Certification Authority (STI-CA)
+
 An entity responsible for issuing STI certificates in the Secure Telephone Identity ecosystem. The CA can also issue pre-certificates, which are submitted to CT logs before the final certificate is issued.
 
 ## STI Subordinate Certification Authority (STI-SCA)
+
 An entity authorized by an CA to issue STI certificates under the authority of the STI-CA. The STI-SCA can also issue pre-certificates for submission to CT logs.
 
 ## Signed Tree Head (STH)
+
 A cryptographically signed data structure that represents the current state of a Certificate Transparency log. It includes the root hash of the Merkle Tree and the number of entries in the log, allowing auditors to verify the integrity and consistency of the log.
 
 ## TBSCertificate (To Be Signed Certificate)
+
 A component of an X.509 certificate that contains all the information about the certificate except the actual digital signature. The TBSCertificate includes fields such as the version, serial number, issuer, validity period, subject, and the subject's public key information. This component is signed by the certificate authority (CA) to create the final certificate. In the context of Certificate Transparency, the TBSCertificate of a pre-certificate is submitted to the log for inclusion.
 
 ## Verification Service (VS)
+
 A service that verifies the authenticity of a telephone call by checking the validity of the PASSporT token, including verification that certificate contains valid SCTs.
 
 # STI Certificate Transparency Framework
@@ -173,16 +184,16 @@ The SCT is a data structure returned by the log when a pre-certificate is accept
 
 ~~~~~~~~~~~~~
 struct {
+  Version sct_version;
+  LogID id;
+  uint64 timestamp;
+  digitally-signed struct {
     Version sct_version;
-    LogID id;
+    SignatureType signature_type = certificate_timestamp;
     uint64 timestamp;
-    digitally-signed struct {
-        Version sct_version;
-        SignatureType signature_type = certificate_timestamp;
-        uint64 timestamp;
-        PreCert signed_entry;
-        CtExtensions extensions;
-    };
+    PreCert signed_entry;
+    CtExtensions extensions;
+  };
 } SignedCertificateTimestamp;
 ~~~~~~~~~~~~~
 
@@ -200,15 +211,15 @@ Logs use a Merkle Tree structure, with each leaf corresponding to a MerkleTreeLe
 
 ~~~~~~~~~~~~~
 struct {
-    Version version;
-    MerkleLeafType leaf_type;
-    TimestampedEntry timestamped_entry;
+  Version version;
+  MerkleLeafType leaf_type;
+  TimestampedEntry timestamped_entry;
 } MerkleTreeLeaf;
 
 struct {
-    uint64 timestamp;
-    PreCert signed_entry;
-    CtExtensions extensions;
+  uint64 timestamp;
+  PreCert signed_entry;
+  CtExtensions extensions;
 } TimestampedEntry;
 ~~~~~~~~~~~~~
 
@@ -224,11 +235,11 @@ The log periodically signs the root of the Merkle Tree, producing a Signed Tree 
 
 ~~~~~~~~~~~~~
 digitally-signed struct {
-    Version version;
-    SignatureType signature_type = tree_hash;
-    uint64 timestamp;
-    uint64 tree_size;
-    opaque sha256_root_hash[32];
+  Version version;
+  SignatureType signature_type = tree_hash;
+  uint64 timestamp;
+  uint64 tree_size;
+  opaque sha256_root_hash[32];
 } TreeHeadSignature;
 ~~~~~~~~~~~~~
 
@@ -395,33 +406,33 @@ Monitors in the STI-CT framework play a crucial role in maintaining the integrit
 ### Monitor Workflow
 
 1. Initialize Monitor:
-   - Set up the Monitor to periodically query the transparency logs for new entries. The Monitor must be configured with the base URL of each log it intends to monitor.
-   - Configure the Monitor with a list of telephone numbers (TNs) and associated entities to track.
+  * Set up the Monitor to periodically query the transparency logs for new entries. The Monitor must be configured with the base URL of each log it intends to monitor.
+  * Configure the Monitor with a list of telephone numbers (TNs) and associated entities to track.
 
 2. Retrieve Latest STH:
-   - The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
-   - API Call: GET https://\<log server\>/stict/v1/get-sth
+  * The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
+  * API Call: GET https://\<log server\>/stict/v1/get-sth
 
 3. Retrieve New Entries from Log:
-   - Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
-   - API Call: GET https://\<log server\>/stict/v1/get-entries?start=last_known_index&end=current_sth_index
+  - Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
+  - API Call: GET https://\<log server\>/stict/v1/get-entries?start=last_known_index&end=current_sth_index
 
 4. Decode and Verify Certificates:
-   - Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
+  - Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
 
 5. Check for Mis-issuance:
-   - Compare the TNAuthList and entity name from the newly issued certificate with the Monitor's configured list. Alarm if a certificate is issued in the name of a different entity for the same TNs.
+  - Compare the TNAuthList and entity name from the newly issued certificate with the Monitor's configured list. Alarm if a certificate is issued in the name of a different entity for the same TNs.
 
 6. Alarm and Reporting:
-   - If a mis-issuance is detected, raise an alarm and log the details for further investigation. Notify relevant stakeholders to rectify any confirmed mis-issuance.
+  - If a mis-issuance is detected, raise an alarm and log the details for further investigation. Notify relevant stakeholders to rectify any confirmed mis-issuance.
 
 7. Maintain State and Continuity:
-   - Update the Monitor's last known state with the current STH index to ensure continuity in monitoring.
+  - Update the Monitor's last known state with the current STH index to ensure continuity in monitoring.
 
 8. STH Verification and Consistency Check:
-   - After retrieving a new STH, verify the STH signature.
-   - If not keeping all log entries, fetch a consistency proof for the new STH with the previous STH (GET https://\<log server\>/stict/v1/get-sth-consistency) and verify it.
-   - Go to Step 5 and repeat the process.
+  - After retrieving a new STH, verify the STH signature.
+  - If not keeping all log entries, fetch a consistency proof for the new STH with the previous STH (GET https://\<log server\>/stict/v1/get-sth-consistency) and verify it.
+  - Go to Step 5 and repeat the process.
 
 ## Auditor
 
@@ -430,22 +441,22 @@ Auditors are responsible for verifying the consistency and correctness of the lo
 ### Auditor Functions
 
 1. STH Verification:
-   - Auditors can fetch STHs periodically and verify their signatures to ensure the log is maintaining its integrity.
-   - API Call: GET https://\<log server\>/stict/v1/get-sth
+  - Auditors can fetch STHs periodically and verify their signatures to ensure the log is maintaining its integrity.
+  - API Call: GET https://\<log server\>/stict/v1/get-sth
 
 2. Consistency Proof Verification:
-   - Auditors verify the consistency of a log over time by requesting a consistency proof between two STHs.
-   - API Call: GET https://\<log server\>/stict/v1/get-sth-consistency
+  - Auditors verify the consistency of a log over time by requesting a consistency proof between two STHs.
+  - API Call: GET https://\<log server\>/stict/v1/get-sth-consistency
 
 3. Audit Proof Verification:
-   - A certificate accompanied by an SCT can be verified against any STH dated after the SCT timestamp + the Maximum Merge Delay by requesting a Merkle audit proof.
-   - API Call: GET https://\<log server\>/stict/v1/get-proof-by-hash
+  - A certificate accompanied by an SCT can be verified against any STH dated after the SCT timestamp + the Maximum Merge Delay by requesting a Merkle audit proof.
+  - API Call: GET https://\<log server\>/stict/v1/get-proof-by-hash
 
 4. Cross-Checking Logs:
-   - Auditors can cross-check entries across different logs by comparing SCTs and verifying that entries are consistently logged across the ecosystem.
+  - Auditors can cross-check entries across different logs by comparing SCTs and verifying that entries are consistently logged across the ecosystem.
 
 5. Error and Inconsistency Detection:
-   - Any discrepancies or failures in verification processes can be logged as evidence of potential log misbehavior, and appropriate actions can be taken based on the findings.
+  - Any discrepancies or failures in verification processes can be logged as evidence of potential log misbehavior, and appropriate actions can be taken based on the findings.
 
 # Security Considerations
 
