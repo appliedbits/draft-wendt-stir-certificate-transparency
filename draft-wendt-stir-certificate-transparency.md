@@ -406,33 +406,35 @@ Monitors in the STI-CT framework play a crucial role in maintaining the integrit
 ### Monitor Workflow
 
 1. Initialize Monitor:
-  * Set up the Monitor to periodically query the transparency logs for new entries. The Monitor must be configured with the base URL of each log it intends to monitor.
-  * Configure the Monitor with a list of telephone numbers (TNs) and associated entities to track.
+  <br>- Set up the Monitor to periodically query the transparency logs for new entries. The Monitor must be configured with the base URL of each log it intends to monitor.
+  <br>- Configure the Monitor with a list of telephone numbers (TNs) and associated entities to track.
 
 2. Retrieve Latest STH:
-  * The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
-  * API Call: GET https://\<log server\>/stict/v1/get-sth
+  <br>- The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
+  <br>
+  <br>API Call: GET https://\<log server\>/stict/v1/get-sth
 
 3. Retrieve New Entries from Log:
-  - Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
-  - API Call: GET https://\<log server\>/stict/v1/get-entries?start=last_known_index&end=current_sth_index
+  <br>- Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
+  <br>
+  <br>API Call: GET https://\<log server\>/stict/v1/get-entries?start=last_known_index&end=current_sth_index
 
 4. Decode and Verify Certificates:
-  - Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
+  <br>- Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
 
 5. Check for Mis-issuance:
-  - Compare the TNAuthList and entity name from the newly issued certificate with the Monitor's configured list. Alarm if a certificate is issued in the name of a different entity for the same TNs.
+  <br>- Compare the TNAuthList and entity name from the newly issued certificate with the Monitor's configured list. Alarm if a certificate is issued in the name of a different entity for the same TNs.
 
 6. Alarm and Reporting:
-  - If a mis-issuance is detected, raise an alarm and log the details for further investigation. Notify relevant stakeholders to rectify any confirmed mis-issuance.
+  <br>- If a mis-issuance is detected, raise an alarm and log the details for further investigation. Notify relevant stakeholders to rectify any confirmed mis-issuance.
 
 7. Maintain State and Continuity:
-  - Update the Monitor's last known state with the current STH index to ensure continuity in monitoring.
+  <br>- Update the Monitor's last known state with the current STH index to ensure continuity in monitoring.
 
 8. STH Verification and Consistency Check:
-  - After retrieving a new STH, verify the STH signature.
-  - If not keeping all log entries, fetch a consistency proof for the new STH with the previous STH (GET https://\<log server\>/stict/v1/get-sth-consistency) and verify it.
-  - Go to Step 5 and repeat the process.
+  <br>- After retrieving a new STH, verify the STH signature.
+  <br>- If not keeping all log entries, fetch a consistency proof for the new STH with the previous STH (GET https://\<log server\>/stict/v1/get-sth-consistency) and verify it.
+  <br>- Go to Step 5 and repeat the process.
 
 ## Auditor
 
@@ -441,22 +443,25 @@ Auditors are responsible for verifying the consistency and correctness of the lo
 ### Auditor Functions
 
 1. STH Verification:
-  - Auditors can fetch STHs periodically and verify their signatures to ensure the log is maintaining its integrity.
-  - API Call: GET https://\<log server\>/stict/v1/get-sth
+  <br>- Auditors can fetch STHs periodically and verify their signatures to ensure the log is maintaining its integrity.
+  <br>
+  <br>API Call: GET https://\<log server\>/stict/v1/get-sth
 
 2. Consistency Proof Verification:
-  - Auditors verify the consistency of a log over time by requesting a consistency proof between two STHs.
-  - API Call: GET https://\<log server\>/stict/v1/get-sth-consistency
+  <br>- Auditors verify the consistency of a log over time by requesting a consistency proof between two STHs.
+  <br>
+  <br>API Call: GET https://\<log server\>/stict/v1/get-sth-consistency
 
 3. Audit Proof Verification:
-  - A certificate accompanied by an SCT can be verified against any STH dated after the SCT timestamp + the Maximum Merge Delay by requesting a Merkle audit proof.
-  - API Call: GET https://\<log server\>/stict/v1/get-proof-by-hash
+  <br>- A certificate accompanied by an SCT can be verified against any STH dated after the SCT timestamp + the Maximum Merge Delay by requesting a Merkle audit proof.
+  <br>
+  <br>API Call: GET https://\<log server\>/stict/v1/get-proof-by-hash
 
 4. Cross-Checking Logs:
-  - Auditors can cross-check entries across different logs by comparing SCTs and verifying that entries are consistently logged across the ecosystem.
+  <br>- Auditors can cross-check entries across different logs by comparing SCTs and verifying that entries are consistently logged across the ecosystem.
 
 5. Error and Inconsistency Detection:
-  - Any discrepancies or failures in verification processes can be logged as evidence of potential log misbehavior, and appropriate actions can be taken based on the findings.
+  <br>- Any discrepancies or failures in verification processes can be logged as evidence of potential log misbehavior, and appropriate actions can be taken based on the findings.
 
 # Security Considerations
 
