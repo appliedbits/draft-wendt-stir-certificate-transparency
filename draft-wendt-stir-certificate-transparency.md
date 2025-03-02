@@ -255,133 +255,274 @@ This section outlines the API operations that clients of the STI-CT will use to 
 
 These APIs are based on RFC 6962, which defines the Certificate Transparency protocol. The APIs are designed to be specific for STIR ecosystem certificates.
 
-## Add Pre-certificate Chain to Log
+## Add Pre-Certificate Chain
 
-Endpoint:
+Path:
+~~~~~~~~~~~~~
+POST /stict/v1/add-pre-chain
+~~~~~~~~~~~~~
 
-- POST https://\<log server\>/stict/v1/add-pre-chain
+Description:
+Submits an STI pre-certificate chain for transparency. Logs validate the chain and, if accepted, return an SCT (Signed Certificate Timestamp). This SCT is later embedded in the final issued STI certificate.
 
-Inputs:
+Request
+- Method: POST
+- Headers:
+  - Content-Type: application/json
+- Body Fields:
+  - chain (array of strings, required): A base64-encoded DER array of certificates in the chain.
+    - Index 0: The pre-certificate (end-entity).
+    - Subsequent indices: Intermediate certificates that chain to a root known by the log. The root may be omitted.
 
-- chain: An array of base64-encoded certificates representing the pre-certificate chain. The first element is the end-entity pre-certificate (TBSCertificate), and subsequent elements are certificates that chain up to a known root certificate.
+Example (Request Body):
+~~~~~~~~~~~~~
+{
+  "chain": [
+    "MIIDeDCCAmCgAwIBAgIUQpvEv/QkS5oJLULvMLKn/PNxZy0wDQYJ...",
+    "MIIDbjCCAlagAwIBAgIBATANBgkqhkiG9w0BAQsFADBdMQ...",
+    "MIIEczCCAVugAwIBAgIQe3yk7ewH8xs2CH2nDx..."
+  ]
+}
+~~~~~~~~~~~~~
 
-Outputs:
+Response
+- Status Codes:
+  - 200 OK: Pre-cert accepted; returns the SCT data.
+  - 4xx or 5xx: Possible errors (invalid chain, untrusted root, or malformed JSON).
 
-- sct_version: The version of the Signed Certificate Timestamp (SCT) structure, in decimal. For this version, it should always be `1`.
-- id: The log ID, base64 encoded. This is the identifier for the log server that processed the submission.
-- timestamp: The SCT timestamp, in decimal, representing the time when the SCT was issued.
-- extensions: An opaque field reserved for future use. Currently, logs should set this to an empty string.
-- signature: The SCT signature, base64 encoded, which is used to verify the SCT.
+- Body Fields:
+  - sct_version (integer): Version of the SCT protocol, typically 1.
+  - id(string): Base64-encoded log identifier (SHA-256 of log’s public key).
+  - timestamp (string or integer): The SCT issuance timestamp in milliseconds or seconds since epoch.
+  - extensions (string): Future-use extension data, usually empty string.
+  - signature (string): Base64-encoded signature over the SCT structure.
 
-This endpoint allows an STI-CA or STI-SCA to submit a pre-certificate chain to the log for transparency. Upon submission, the log returns an SCT, which should be included in the final STI certificate before it is issued.
+Example (Response Body):
+~~~~~~~~~~~~~
+{
+  "sct_version": 1,
+  "id": "XjM0Om+/Zesv9B6lJJp3lhWKJk0=",
+  "timestamp": "1694099392000",
+  "extensions": "",
+  "signature": "MEYCIQDc8Hp1mQEm+kkcG..."
+}
+~~~~~~~~~~~~~
 
-## Retrieve Latest Signed Tree Head
+## Get Latest Signed Tree Head
 
-Endpoint:
+Path:
+~~~~~~~~~~~~~
+GET /stict/v1/get-sth
+~~~~~~~~~~~~~
 
-- GET https://\<log server\>/stict/v1/get-sth
+Description:
+Returns the latest Signed Tree Head (STH). Clients use this to see the current log size and root hash. Tools like monitors can track the log’s growth and verify any new entries.
 
-Inputs:
+Request
+- Method: GET
 
-- No inputs required.
+Response
+- Status Codes:
+  - 200 OK on success.
 
-Outputs:
+- Body Fields:
+  - tree_size (integer): Number of leaves in the Merkle Tree.
+  - timestamp (string or integer): Timestamp of this STH.
+  - sha256_root_hash (string): Base64-encoded 32-byte root hash.
+  - tree_head_signature (string): Base64-encoded signature that covers the tree_size, timestamp, and root_hash.
 
-- tree_size: The number of entries in the log, in decimal.
-- timestamp: The timestamp of the latest Signed Tree Head (STH), in decimal.
-- sha256_root_hash: The SHA-256 hash of the root of the Merkle Tree, base64 encoded.
-- tree_head_signature: A signature of the STH data, ensuring its integrity.
+Example (Response Body):
+~~~~~~~~~~~~~
+{
+  "tree_size": 1500023,
+  "timestamp": "1694099500000",
+  "sha256_root_hash": "m+NKUoI9g/W8Gm3rSPzTFFOvLsMtZ4qX2Z1puQrT8as=",
+  "tree_head_signature": "MEYCIQD9x61YcWkkPn9pZ..."
+}
+~~~~~~~~~~~~~
 
-This endpoint retrieves the latest state of the log, represented by the Signed Tree Head, which can be used by clients to verify that entries have been properly incorporated into the log.
+## Get Consistency Proof
 
-## Retrieve Merkle Consistency Proof between Two Signed Tree Heads
+Path:
+~~~~~~~~~~~~~
+GET /stict/v1/get-sth-consistency
+~~~~~~~~~~~~~
 
-Endpoint:
+Description:
+Retrieves a consistency proof between two versions (two tree sizes) of the log. This shows that the log is append-only.
 
-- GET https://\<log server\>/ct/v1/get-sth-consistency
+Request
+- Method**: GET
+- Query Parameters:
+  - first (string, required): The **earlier** tree_size.
+  - second (string, required): The **later** tree_size.
 
-Inputs:
+Example (Request):
+~~~~~~~~~~~~~
+GET /stict/v1/get-sth-consistency?first=100000&second=1500023
+~~~~~~~~~~~~~
 
-- first: The tree size of the first STH, in decimal.
-- second: The tree size of the second STH, in decimal.
+Response
+- Body Fields:
+  - consistency (array of strings): A list of base64-encoded Merkle nodes that form the proof.
 
-Outputs:
+Example (Response Body):
+~~~~~~~~~~~~~
+{
+  "consistency": [
+    "uB7Jjy7msTCN3qdP9ml7U7JZ5RGr6/qnRrmdTrLL3FA=",
+    "qXJk/9zvR3PruN02n6Zt9b/fnEmJyZT4jD5zwJ1AVmA="
+  ]
+}
+~~~~~~~~~~~~~
 
-- consistency: An array of base64-encoded Merkle Tree nodes that provide a consistency proof between the two STHs.
+## Get Audit Proof by Leaf Hash
 
-This endpoint allows clients to verify that the log has been consistently maintained over time, by checking the consistency proof between two STHs.
+Path:
+~~~~~~~~~~~~~
+GET /stict/v1/get-proof-by-hash
+~~~~~~~~~~~~~
 
-## Retrieve Merkle Audit Proof from Log by Leaf Hash
+Description:
+Returns an inclusion proof for a leaf identified by its hash. The user also specifies which tree_size they want to prove inclusion against.
 
-Endpoint:
+Request
+- Method**: GET
+- Query Parameters**:
+  - hash (string, required): Base64 of the leaf’s SHA-256 hash.
+  - tree_size (string, required): The size of the log tree in which you want to confirm the leaf’s inclusion.
 
-- GET https://\<log server\>/stict/v1/get-proof-by-hash
+Example (Request):
+~~~~~~~~~~~~~
+GET /stict/v1/get-proof-by-hash?hash=aGVsbG8td29ybGQ=&tree_size=1500023
+~~~~~~~~~~~~~
 
-Inputs:
+Response
+- Body Fields:
+  - leaf_index (integer): The numeric index of this leaf in the log.
+  - audit_path (array of strings): A list of base64-encoded sibling node hashes (the Merkle path).
 
-- hash: A base64-encoded SHA-256 hash of the leaf.
-- tree_size: The size of the tree for which the proof is desired, in decimal.
+Example (Response Body):
+~~~~~~~~~~~~~
+{
+  "leaf_index": 998277,
+  "audit_path": [
+    "fMhx9W9DcMtt/IGmlOJMGJKR7gWlkapTW/9CRg==",
+    "61OjNhDW0p2D6KloU42IJn/8muURpawFZf31SQ=="
+  ]
+}
+~~~~~~~~~~~~~
 
-Outputs:
+## Get Log Entries
 
-- leaf_index: The 0-based index of the corresponding log entry.
-- audit_path: An array of base64-encoded Merkle Tree nodes providing the audit proof.
+Path:
+~~~~~~~~~~~~~
+GET /stict/v1/get-entries
+~~~~~~~~~~~~~
 
-This endpoint retrieves a Merkle audit proof, which can be used to verify that a particular entry is included in the log, ensuring that the log is append-only and that the SCT is valid.
+Description:
+Retrieves one or more log entries specified by a start and end index. This allows monitors or auditors to read new portions of the log.
 
-## Retrieve Entries from Log
+Request
+- Method: GET
+- Query Parameters:
+  - start (string, required): The 0-based index of the first entry to retrieve.
+  - end (string, required): The 0-based index of the last entry to retrieve (some implementations treat this as inclusive or exclusive—must be documented by the log).
 
-Endpoint:
+Example (Request):
+~~~~~~~~~~~~~
+GET /stict/v1/get-entries?start=100000&end=100010
+~~~~~~~~~~~~~
 
-- GET https://\<log server\>/stict/v1/get-entries
+Response
+- Body Fields:
+  - entries (array): A list of objects, each representing a log entry. Each object usually has:
+    - leaf_input: A base64-encoded MerkleTreeLeaf structure (per RFC 6962).
+    - extra_data: A base64-encoded representation of the chain data (in case of a pre-certificate entry).
 
-Inputs:
+Example (Response Body):
+~~~~~~~~~~~~~
+{
+  "entries": [
+    {
+      "leaf_input": "MIGaMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBg...",
+      "extra_data": "MIICXzCCAb2gAwIB..."
+    },
+    {
+      "leaf_input": "MIGcMEIGCSqGSIb3DQEBCjAB...",
+      "extra_data": "MIIEfzCCAyegAwIB..."
+    }
+  ]
+}
 
-- start: The 0-based index of the first entry to retrieve, in decimal.
-- end: The 0-based index of the last entry to retrieve, in decimal.
+(Truncated for readability.)
 
-Outputs:
+## Get Accepted Root Certificates
 
-- entries: An array of objects, each containing:
-- leaf_input: The base64-encoded MerkleTreeLeaf structure.
-- extra_data: The base64-encoded unsigned data related to the log entry. For a pre-certificate entry, this will include the entire PrecertChainEntry.
+Path:
+~~~~~~~~~~~~~
+GET /stict/v1/get-roots
+~~~~~~~~~~~~~
 
-This endpoint allows clients to retrieve a range of entries from the log, which can be used to verify the integrity of the log and audit the inclusion of specific entries.
+Description:
+Returns a list of root certificates that this log currently trusts for chain validation.
 
-## Retrieve Accepted Root Certificates
+Request
+- Method: GET
 
-Endpoint:
+Response
+- Body Fields:
+  - certificates(array of strings): Each string is a base64-encoded X.509 root certificate.
 
-- GET https://\<log server\>/stict/v1/get-roots
+Example (Response Body):
+~~~~~~~~~~~~~
+{
+  "certificates": [
+    "MIIFmDCCBGCgAwIBAgIQMm8jHAFcq+CTZXQq...",
+    "MIICeTCCAhGgAwIBAgIBBDANBgkqhkiG9w0BAQsFAD..."
+  ]
+}
+~~~~~~~~~~~~~
 
-Inputs:
+## Get Entry and Proof
 
-- No inputs required.
+Path:
+~~~~~~~~~~~~~
+GET /stict/v1/get-entry-and-proof
+~~~~~~~~~~~~~
 
-Outputs:
+Description:
+Fetches a single log entry (by leaf_index) plus the audit path needed to verify its inclusion up to the specified tree_size. This is useful for direct verification in one step.
 
-- certificates: An array of base64-encoded root certificates that are accepted by the log.
+Request
+- Method: GET
+- Query Parameters:
+  - leaf_index (string, required): Which leaf entry to fetch.
+  - tree_size (string, required): The size of the tree for which the proof is requested.
 
-This endpoint provides a list of root certificates that the log accepts for verifying certificate chains.
+Example (Request):
+~~~~~~~~~~~~~
+GET /stict/v1/get-entry-and-proof?leaf_index=998277&tree_size=1500023
+~~~~~~~~~~~~~
 
-## Retrieve Entry and Merkle Audit Proof
+Response
+- Body Fields:
+  - leaf_input: base64 MerkleTreeLeaf data for that leaf.
+  - extra_data: The base64-encoded chain or additional info.
+  - audit_path: An array of base64-encoded Merkle nodes forming the inclusion proof.
 
-Endpoint:
+Example (Response Body):
+~~~~~~~~~~~~~
+{
+  "leaf_input": "MIGnMBAGByqGSM49AgEGBSuBBAAiB...",
+  "extra_data": "MIIEfzCCAyegAwIBAgIQM0hOVHv1Q1...",
+  "audit_path": [
+    "X9IAf9Odc1pSdDlwZn0QnQ==",
+    "IMaJ/j1krK9p1P8MEqk/FQ=="
+  ]
+}
+~~~~~~~~~~~~~
 
-- GET https://\<log server\>/stict/v1/get-entry-and-proof
-
-Inputs:
-
-- leaf_index: The index of the desired entry, in decimal.
-- tree_size: The size of the tree for which the proof is desired, in decimal.
-
-Outputs:
-
-- leaf_input: The base64-encoded MerkleTreeLeaf structure.
-- extra_data: The base64-encoded unsigned data related to the log entry, similar to the output in get-entries.
-- audit_path: An array of base64-encoded Merkle Tree nodes providing the audit proof.
-
-This endpoint is typically used for debugging or for in-depth verification of specific entries in the log.
 
 # Clients
 
