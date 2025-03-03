@@ -5,16 +5,16 @@ category: std
 
 docname: draft-wendt-stir-certificate-transparency-latest
 submissiontype: IETF  # also: "independent", "editorial", "IAB", or "IRTF"
-number:
+number: 5
 date:
 consensus: true
 v: 3
 area: "Applications and Real-Time"
 workgroup: "Secure Telephone Identity Revisited"
 keyword:
- - stir
- - certificates
- - delegate certificates
+- stir
+- certificates
+- delegate certificates
 venue:
   group: "Secure Telephone Identity Revisited"
   type: "Working Group"
