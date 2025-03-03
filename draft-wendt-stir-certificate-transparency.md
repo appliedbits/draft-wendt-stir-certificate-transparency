@@ -266,15 +266,22 @@ Description:
 Submits an STI pre-certificate chain for transparency. Logs validate the chain and, if accepted, return an SCT (Signed Certificate Timestamp). This SCT is later embedded in the final issued STI certificate.
 
 Request
-- Method: POST
-- Headers:
-  - Content-Type: application/json
-- Body Fields:
-  - chain (array of strings, required): A base64-encoded DER array of certificates in the chain.
-    - Index 0: The pre-certificate (end-entity).
-    - Subsequent indices: Intermediate certificates that chain to a root known by the log. The root may be omitted.
+
+Method: POST
+
+Headers:
+
+- Content-Type: application/json
+
+Body Fields:
+
+chain (array of strings, required): A base64-encoded DER array of certificates in the chain.
+
+- Index 0: The pre-certificate (end-entity).
+- Subsequent indices: Intermediate certificates that chain to a root known by the log. The root may be omitted.
 
 Example (Request Body):
+
 ~~~~~~~~~~~~~
 {
   "chain": [
@@ -286,18 +293,22 @@ Example (Request Body):
 ~~~~~~~~~~~~~
 
 Response
-- Status Codes:
-  - 200 OK: Pre-cert accepted; returns the SCT data.
-  - 4xx or 5xx: Possible errors (invalid chain, untrusted root, or malformed JSON).
 
-- Body Fields:
-  - sct_version (integer): Version of the SCT protocol, typically 1.
-  - id(string): Base64-encoded log identifier (SHA-256 of log’s public key).
-  - timestamp (string or integer): The SCT issuance timestamp in milliseconds or seconds since epoch.
-  - extensions (string): Future-use extension data, usually empty string.
-  - signature (string): Base64-encoded signature over the SCT structure.
+Status Codes:
+
+- 200 OK: Pre-cert accepted; returns the SCT data.
+- 4xx or 5xx: Possible errors (invalid chain, untrusted root, or malformed JSON).
+
+Body Fields:
+
+- sct_version (integer): Version of the SCT protocol, typically 1.
+- id(string): Base64-encoded log identifier (SHA-256 of log’s public key).
+- timestamp (string or integer): The SCT issuance timestamp in milliseconds or seconds since epoch.
+- extensions (string): Future-use extension data, usually empty string.
+- signature (string): Base64-encoded signature over the SCT structure.
 
 Example (Response Body):
+
 ~~~~~~~~~~~~~
 {
   "sct_version": 1,
@@ -311,6 +322,7 @@ Example (Response Body):
 ## Get Latest Signed Tree Head
 
 Path:
+
 ~~~~~~~~~~~~~
 GET /stict/v1/get-sth
 ~~~~~~~~~~~~~
@@ -319,19 +331,23 @@ Description:
 Returns the latest Signed Tree Head (STH). Clients use this to see the current log size and root hash. Tools like monitors can track the log’s growth and verify any new entries.
 
 Request
-- Method: GET
+
+Method: GET
 
 Response
-- Status Codes:
-  - 200 OK on success.
 
-- Body Fields:
-  - tree_size (integer): Number of leaves in the Merkle Tree.
-  - timestamp (string or integer): Timestamp of this STH.
-  - sha256_root_hash (string): Base64-encoded 32-byte root hash.
-  - tree_head_signature (string): Base64-encoded signature that covers the tree_size, timestamp, and root_hash.
+Status Codes:
+- 200 OK on success.
+
+Body Fields:
+
+- tree_size (integer): Number of leaves in the Merkle Tree.
+- timestamp (string or integer): Timestamp of this STH.
+- sha256_root_hash (string): Base64-encoded 32-byte root hash.
+- tree_head_signature (string): Base64-encoded signature that covers the tree_size, timestamp, and root_hash.
 
 Example (Response Body):
+
 ~~~~~~~~~~~~~
 {
   "tree_size": 1500023,
@@ -344,6 +360,7 @@ Example (Response Body):
 ## Get Consistency Proof
 
 Path:
+
 ~~~~~~~~~~~~~
 GET /stict/v1/get-sth-consistency
 ~~~~~~~~~~~~~
@@ -352,21 +369,27 @@ Description:
 Retrieves a consistency proof between two versions (two tree sizes) of the log. This shows that the log is append-only.
 
 Request
-- Method**: GET
-- Query Parameters:
-  - first (string, required): The **earlier** tree_size.
-  - second (string, required): The **later** tree_size.
+
+Method: GET
+Query Parameters:
+
+- first (string, required): The earlier** tree_size.
+- second (string, required): The **later** tree_size.
 
 Example (Request):
+
 ~~~~~~~~~~~~~
 GET /stict/v1/get-sth-consistency?first=100000&second=1500023
 ~~~~~~~~~~~~~
 
 Response
-- Body Fields:
-  - consistency (array of strings): A list of base64-encoded Merkle nodes that form the proof.
+
+Body Fields:
+
+- consistency (array of strings): A list of base64-encoded Merkle nodes that form the proof.
 
 Example (Response Body):
+
 ~~~~~~~~~~~~~
 {
   "consistency": [
@@ -379,6 +402,7 @@ Example (Response Body):
 ## Get Audit Proof by Leaf Hash
 
 Path:
+
 ~~~~~~~~~~~~~
 GET /stict/v1/get-proof-by-hash
 ~~~~~~~~~~~~~
@@ -387,22 +411,28 @@ Description:
 Returns an inclusion proof for a leaf identified by its hash. The user also specifies which tree_size they want to prove inclusion against.
 
 Request
-- Method**: GET
-- Query Parameters**:
-  - hash (string, required): Base64 of the leaf’s SHA-256 hash.
-  - tree_size (string, required): The size of the log tree in which you want to confirm the leaf’s inclusion.
+Method: GET
+
+Query Parameters:
+
+- hash (string, required): Base64 of the leaf's SHA-256 hash.
+- tree_size (string, required): The size of the log tree in which you want to confirm the leaf's inclusion.
 
 Example (Request):
+
 ~~~~~~~~~~~~~
 GET /stict/v1/get-proof-by-hash?hash=aGVsbG8td29ybGQ=&tree_size=1500023
 ~~~~~~~~~~~~~
 
 Response
-- Body Fields:
-  - leaf_index (integer): The numeric index of this leaf in the log.
-  - audit_path (array of strings): A list of base64-encoded sibling node hashes (the Merkle path).
+
+Body Fields:
+
+- leaf_index (integer): The numeric index of this leaf in the log.
+- audit_path (array of strings): A list of base64-encoded sibling node hashes (the Merkle path).
 
 Example (Response Body):
+
 ~~~~~~~~~~~~~
 {
   "leaf_index": 998277,
@@ -416,6 +446,7 @@ Example (Response Body):
 ## Get Log Entries
 
 Path:
+
 ~~~~~~~~~~~~~
 GET /stict/v1/get-entries
 ~~~~~~~~~~~~~
@@ -424,23 +455,31 @@ Description:
 Retrieves one or more log entries specified by a start and end index. This allows monitors or auditors to read new portions of the log.
 
 Request
-- Method: GET
-- Query Parameters:
-  - start (string, required): The 0-based index of the first entry to retrieve.
-  - end (string, required): The 0-based index of the last entry to retrieve (some implementations treat this as inclusive or exclusive—must be documented by the log).
+
+Method: GET
+
+Query Parameters:
+
+start (string, required): The 0-based index of the first entry to retrieve.
+end (string, required): The 0-based index of the last entry to retrieve (some implementations treat this as inclusive or exclusive—must be documented by the log).
 
 Example (Request):
+
 ~~~~~~~~~~~~~
 GET /stict/v1/get-entries?start=100000&end=100010
 ~~~~~~~~~~~~~
 
 Response
-- Body Fields:
-  - entries (array): A list of objects, each representing a log entry. Each object usually has:
-    - leaf_input: A base64-encoded MerkleTreeLeaf structure (per RFC 6962).
-    - extra_data: A base64-encoded representation of the chain data (in case of a pre-certificate entry).
+
+Body Fields:
+
+entries (array): A list of objects, each representing a log entry. Each object usually has:
+
+- leaf_input: A base64-encoded MerkleTreeLeaf structure (per RFC 6962).
+- extra_data: A base64-encoded representation of the chain data (in case of a pre-certificate entry).
 
 Example (Response Body):
+
 ~~~~~~~~~~~~~
 {
   "entries": [
@@ -454,12 +493,14 @@ Example (Response Body):
     }
   ]
 }
+~~~~~~~~~~~~~
 
 (Truncated for readability.)
 
 ## Get Accepted Root Certificates
 
 Path:
+
 ~~~~~~~~~~~~~
 GET /stict/v1/get-roots
 ~~~~~~~~~~~~~
@@ -468,13 +509,16 @@ Description:
 Returns a list of root certificates that this log currently trusts for chain validation.
 
 Request
-- Method: GET
+
+Method: GET
 
 Response
-- Body Fields:
-  - certificates(array of strings): Each string is a base64-encoded X.509 root certificate.
+
+Body Fields:
+- certificates(array of strings): Each string is a base64-encoded X.509 root certificate.
 
 Example (Response Body):
+
 ~~~~~~~~~~~~~
 {
   "certificates": [
@@ -487,31 +531,40 @@ Example (Response Body):
 ## Get Entry and Proof
 
 Path:
+
 ~~~~~~~~~~~~~
 GET /stict/v1/get-entry-and-proof
 ~~~~~~~~~~~~~
 
 Description:
+
 Fetches a single log entry (by leaf_index) plus the audit path needed to verify its inclusion up to the specified tree_size. This is useful for direct verification in one step.
 
 Request
-- Method: GET
-- Query Parameters:
-  - leaf_index (string, required): Which leaf entry to fetch.
-  - tree_size (string, required): The size of the tree for which the proof is requested.
+
+Method: GET
+
+Query Parameters:
+
+- leaf_index (string, required): Which leaf entry to fetch.
+- tree_size (string, required): The size of the tree for which the proof is requested.
 
 Example (Request):
+
 ~~~~~~~~~~~~~
 GET /stict/v1/get-entry-and-proof?leaf_index=998277&tree_size=1500023
 ~~~~~~~~~~~~~
 
 Response
-- Body Fields:
-  - leaf_input: base64 MerkleTreeLeaf data for that leaf.
-  - extra_data: The base64-encoded chain or additional info.
-  - audit_path: An array of base64-encoded Merkle nodes forming the inclusion proof.
+
+Body Fields:
+
+- leaf_input: base64 MerkleTreeLeaf data for that leaf.
+- extra_data: The base64-encoded chain or additional info.
+- audit_path: An array of base64-encoded Merkle nodes forming the inclusion proof.
 
 Example (Response Body):
+
 ~~~~~~~~~~~~~
 {
   "leaf_input": "MIGnMBAGByqGSM49AgEGBSuBBAAiB...",
@@ -547,35 +600,46 @@ Monitors in the STI-CT framework play a crucial role in maintaining the integrit
 ### Monitor Workflow
 
 1. Initialize Monitor:
-  <br>- Set up the Monitor to periodically query the transparency logs for new entries. The Monitor must be configured with the base URL of each log it intends to monitor.
-  <br>- Configure the Monitor with a list of telephone numbers (TNs) and associated entities to track.
+
+Set up the Monitor to periodically query the transparency logs for new entries. The Monitor must be configured with the base URL of each log it intends to monitor.
+
+Configure the Monitor with a list of telephone numbers (TNs) and associated entities to track.
 
 2. Retrieve Latest STH:
-  <br>- The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
-  <br>
-  <br>API Call: GET https://\<log server\>/stict/v1/get-sth
+
+The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
+
+API Call: GET https://\<log server\>/stict/v1/get-sth
 
 3. Retrieve New Entries from Log:
-  <br>- Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
-  <br>
-  <br>API Call: GET https://\<log server\>/stict/v1/get-entries?start=last_known_index&end=current_sth_index
+
+Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
+
+API Call: GET https://\<log server\>/stict/v1/get-entries?start=last_known_index&end=current_sth_index
 
 4. Decode and Verify Certificates:
-  <br>- Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
+
+Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
 
 5. Check for Mis-issuance:
-  <br>- Compare the TNAuthList and entity name from the newly issued certificate with the Monitor's configured list. Alarm if a certificate is issued in the name of a different entity for the same TNs.
+
+Compare the TNAuthList and entity name from the newly issued certificate with the Monitor's configured list. Alarm if a certificate is issued in the name of a different entity for the same TNs.
 
 6. Alarm and Reporting:
-  <br>- If a mis-issuance is detected, raise an alarm and log the details for further investigation. Notify relevant stakeholders to rectify any confirmed mis-issuance.
+
+If a mis-issuance is detected, raise an alarm and log the details for further investigation. Notify relevant stakeholders to rectify any confirmed mis-issuance.
 
 7. Maintain State and Continuity:
-  <br>- Update the Monitor's last known state with the current STH index to ensure continuity in monitoring.
+
+Update the Monitor's last known state with the current STH index to ensure continuity in monitoring.
 
 8. STH Verification and Consistency Check:
-  <br>- After retrieving a new STH, verify the STH signature.
-  <br>- If not keeping all log entries, fetch a consistency proof for the new STH with the previous STH (GET https://\<log server\>/stict/v1/get-sth-consistency) and verify it.
-  <br>- Go to Step 5 and repeat the process.
+
+After retrieving a new STH, verify the STH signature.
+
+If not keeping all log entries, fetch a consistency proof for the new STH with the previous STH (GET https://\<log server\>/stict/v1/get-sth-consistency) and verify it.
+
+Go to Step 5 and repeat the process.
 
 ## Auditor
 
@@ -584,25 +648,30 @@ Auditors are responsible for verifying the consistency and correctness of the lo
 ### Auditor Functions
 
 1. STH Verification:
-  <br>- Auditors can fetch STHs periodically and verify their signatures to ensure the log is maintaining its integrity.
-  <br>
-  <br>API Call: GET https://\<log server\>/stict/v1/get-sth
+  
+Auditors can fetch STHs periodically and verify their signatures to ensure the log is maintaining its integrity.
+
+API Call: GET https://\<log server\>/stict/v1/get-sth
 
 2. Consistency Proof Verification:
-  <br>- Auditors verify the consistency of a log over time by requesting a consistency proof between two STHs.
-  <br>
-  <br>API Call: GET https://\<log server\>/stict/v1/get-sth-consistency
+
+Auditors verify the consistency of a log over time by requesting a consistency proof between two STHs.
+
+API Call: GET https://\<log server\>/stict/v1/get-sth-consistency
 
 3. Audit Proof Verification:
-  <br>- A certificate accompanied by an SCT can be verified against any STH dated after the SCT timestamp + the Maximum Merge Delay by requesting a Merkle audit proof.
-  <br>
-  <br>API Call: GET https://\<log server\>/stict/v1/get-proof-by-hash
+
+A certificate accompanied by an SCT can be verified against any STH dated after the SCT timestamp + the Maximum Merge Delay by requesting a Merkle audit proof.
+
+API Call: GET https://\<log server\>/stict/v1/get-proof-by-hash
 
 4. Cross-Checking Logs:
-  <br>- Auditors can cross-check entries across different logs by comparing SCTs and verifying that entries are consistently logged across the ecosystem.
+
+Auditors can cross-check entries across different logs by comparing SCTs and verifying that entries are consistently logged across the ecosystem.
 
 5. Error and Inconsistency Detection:
-  <br>- Any discrepancies or failures in verification processes can be logged as evidence of potential log misbehavior, and appropriate actions can be taken based on the findings.
+
+Any discrepancies or failures in verification processes can be logged as evidence of potential log misbehavior, and appropriate actions can be taken based on the findings.
 
 # Security Considerations
 
