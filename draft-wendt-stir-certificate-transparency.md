@@ -648,7 +648,7 @@ Auditors are responsible for verifying the consistency and correctness of the lo
 ### Auditor Functions
 
 1. STH Verification:
-  
+
 Auditors can fetch STHs periodically and verify their signatures to ensure the log is maintaining its integrity.
 
 API Call: GET https://\<log server\>/stict/v1/get-sth
