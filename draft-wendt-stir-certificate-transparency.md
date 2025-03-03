@@ -5,7 +5,7 @@ category: std
 
 docname: draft-wendt-stir-certificate-transparency-latest
 submissiontype: IETF  # also: "independent", "editorial", "IAB", or "IRTF"
-number: 5
+number:
 date:
 consensus: true
 v: 3
