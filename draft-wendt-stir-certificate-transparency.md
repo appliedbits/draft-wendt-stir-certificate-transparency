@@ -611,7 +611,7 @@ Upon receipt of a SIP INVITE bearing an Identity header, the VS performs the ste
    - Ensure now() >= SCT.timestamp **or** defer to asynchronous auditor.
    - If any SCT fails, mark call as “failed verification” per {{ATIS-1000074}} and optionally populate verstat=f
 
-Implementations SHOULD cache Certificates and validated SCT objects for the lifetime of the Certificates’s notAfter field to amortize step 3 across many calls.
+Implementations SHOULD cache certificates and validated SCT objects for the lifetime of the certificates' notAfter field to amortize step 3 across many calls.
 
 ### Performance and Scalability Guidelines
 
