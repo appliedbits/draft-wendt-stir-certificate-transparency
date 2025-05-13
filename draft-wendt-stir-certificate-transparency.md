@@ -585,13 +585,39 @@ This section describes various roles clients of STI-CT perform. Any inconsistenc
 
 Submitters in the STI-CT framework are typically STI Certification Authorities (STI-CAs) or Subordinate Certification Authorities (STI-SCAs). These entities submit pre-certificates to the log as described in the APIs section. The returned Signed Certificate Timestamp (SCT) can then be used to construct the final STI certificate, which includes one or more SCTs.
 
-## AS/VS Clients
+## Use of SCTs by Authentication and Verification Services
 
-AS and VS services interact with SCTs and the underlying logs to ensure the authenticity and validity of telephone calls.
+The STI eco-system relies exclusively on the pre-certificate chain method defined in {{RFC6962}}; therefore every Certificate issued for call signing MUST already carry one or more embedded SCTs in the SignedCertificateTimestampList X.509 extension at issuance time.
 
-- AS: The Authentication Service should use valid certificates that contain SCT(s). The SCT(s) can be validated by computing the signature input from the SCT data as well as the certificate and verifying the signature using the corresponding log's public key. AS MUST reject SCTs whose timestamps are in the future.
+Because the SCT is delivered in-band with the Certificate, neither the AS nor the VS perform any network round-trips to Certificate Transparency (CT) logs on the call path. This design bounds incremental cryptographic processing to a few hundred micro-seconds and keeps overall Identity-header handling well below the ~100 ms budget typically available for SIP call setup and attestation/verification in production networks.
 
-- VS: The Verification Service receives the signed PASSporT token and verifies that the included SCTs in the certificate used to sign the PASSporT. VS MUST reject Certificates that do not have valid SCT(s) and fail PASSporT validation.
+### Authentication Service Processing
+
+1. Local SCT validation – For each embedded SCT the AS MUST:
+   - compute the hash of the TBSCertificate as defined in {{RFC6962}} §3.2 and verify the SCT signature with the cached public key of the issuing CT log;
+   - verify that now() >= SCT.timestamp advertised by that log.
+   - Implementations SHOULD pre-compute and cache these checks at certificate activation time so that per-call signing incurs only an O(1) lookup.
+2. PASSporT construction – The PASSporT header and payload are produced per {{RFC8224}} using the Certificate’s private key; the Certificate (with its SCT list) is conveyed in the `ppt="shaken"` `x5u` or `x5c` parameter.
+3. Failure handling – If no SCT validates, the AS MUST treat the Certificate as unusable and refuse to sign the call.
+
+### Verification Service Processing
+
+Upon receipt of a SIP INVITE bearing an Identity header, the VS performs the steps below, all of which are deliberately offline to avoid adding call-path latency:
+
+1. Verify PASSporT signature with DC public key
+2. Validate DC chain to an accepted STI trust anchor.
+3. For every embedded SCT:
+   - Verify signature against cached log key.
+   - Ensure now() ≥ SCT.timestamp **or** defer to asynchronous auditor.
+   - If any SCT fails, mark call as “failed verification” per {{ATIS-1000074}} and optionally populate verstat=f
+
+Implementations SHOULD cache Certificates and validated SCT objects for the lifetime of the Certificates’s notAfter field to amortize step 3 across many calls.
+
+### Performance and Scalability Guidelines
+
+- No synchronous log queries - Embedded SCTs guarantee log commitment; therefore, AS/VS MUST NOT fetch proofs on the call path.
+- Key caching - Log public keys are static and should be loaded at process start-up; reload only on key-roll events signaled via CT gossip or operator policy.
+- Parallel verification - If multiple SCTs are present, VS SHOULD validate them in parallel to keep per-call CPU below ~1 ms on commodity cores.
 
 ## Monitor
 
