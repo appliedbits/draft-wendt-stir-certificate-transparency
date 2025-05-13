@@ -281,6 +281,15 @@ Auditors can cross-check entries across different logs by comparing SCTs and ver
 
 Any discrepancies or failures in verification processes can be logged as evidence of potential log misbehavior, and appropriate actions can be taken based on the findings.
 
+# Relationship to RFC 6962
+This document profiles the Certificate Transparency (CT) protocol as defined in RFC 6962 for use within the STIR eco-system. All log data structures (e.g., LogEntry, SignedCertificateTimestamp, TreeHeadSignature) and API endpoints (e.g., add-pre-chain, get-sth, get-entries, etc.) are adopted directly from RFC 6962.
+
+The main differences are:
+- The expected certificate types are STI certificates as defined in {{RFC8226}} and {{RFC9060}}, with TNAuthList extensions.
+- Submitters are limited to STI Certification Authorities and Subordinate Certification Authorities.
+- Monitoring and auditing are focused on detection of mis-issued telephone number or service provider codes.
+- The client roles (e.g., VS, AS) interact with logs in ways specific to SIP call authentication.
+
 # Security Considerations
 
 TODO Security
