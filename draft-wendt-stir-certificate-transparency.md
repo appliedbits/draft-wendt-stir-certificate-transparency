@@ -60,7 +60,7 @@ informative:
 
 This document describes a framework for the use of the Certificate Transparency (CT) protocol for publicly logging the existence of Secure Telephone Identity (STI) certificates as they are issued or observed. This allows any interested party that is part of the STI eco-system to audit STI certification authority (CA) activity and audit both the issuance of suspect certificates and the certificate logs themselves. The intent is for the establishment of a level of trust in the STI eco-system that depends on the verification of telephone numbers requiring and refusing to honor STI certificates that do not appear in a established log. This effectively establishes the precedent that STI CAs must add all issued certificates to the logs and thus establishes unique association of STI certificates to an authorized provider or assignee of a telephone number resource. The primary role of CT in the STI ecosystem is for verifiable trust in the avoidance of issuance of unauthorized duplicate telephone number level delegate certificates or provider level certificates.  This provides a robust auditable mechanism for the detection of unauthorized creation of certificate credentials for illegitimate spoofing of telephone numbers or service provider codes (SPC).
 
-The framework borrows the log structure and API model from RFC 6962 to enable public auditing and verifiability of certificate issuance. While the foundational mechanisms for log operation, Merkle Tree construction, and Signed Certificate Timestamps (SCTs) are aligned with RFC 6962, this document contextualizes their application in the STIR eco-system, focusing on verifiable control over telephone number resources.
+The framework borrows the log structure and API model from RFC6962 to enable public auditing and verifiability of certificate issuance. While the foundational mechanisms for log operation, Merkle Tree construction, and Signed Certificate Timestamps (SCTs) are aligned with RFC6962, this document contextualizes their application in the STIR eco-system, focusing on verifiable control over telephone number or service provider code resources.
 
 --- middle
 
@@ -72,7 +72,7 @@ Telephone numbers (TNs) and their management and assignment by telephone service
 
 There is three primary actors in the certificate transparency framework. There is the STI Certification Authorities (CAs) that submit all certificates to be issued to one or more transparency append-only log services. The log services are network services that implement the protocol operations for submissions of STI certificates and subsequent queries. They are hosted by interested parties in the STI ecosystem and can accept certificate log submissions from any other CA participant. The second role is the monitors that play the role of monitoring the CT logs to check for potential mis-issuance as well as auditing of the log services. This role can be played by any STI ecosystem participant interested in the trust of the ecosystem or the integrity of the telephone number or provider level certificates produced in the eco-system. CT provides a mechanism of a receipt or Signed Certificate Timestamp (SCT) that is provided as a result of submitting a certificate to the append-only log. The third actor role in the certificate transparency framework is the eco-system participants that can send and receive receipt(s) or SCT(s) to prove and validate that a certificate was submitted to a log(s) and optionally query the log directly for further validation.
 
-The details that follow in this document will detail the specific protocols and framework for Certificate Transparency associated with STI certificates. Most of the details borrow many of the concepts of certificate transparency defined in {{RFC6962}}}} used in web browser and web PKI environments, but provides a specific framework designed for STI certificates and their specific issuance and usage in a telecommunications and telephone number dependent eco-system.
+The details that follow in this document will detail the specific protocols and framework for Certificate Transparency associated with STI certificates. Most of the details borrow many of the concepts of certificate transparency defined in {{RFC6962}} used in web browser and web PKI environments, but provides a specific framework designed for STI certificates and their specific issuance and usage in a telecommunications and telephone number dependent eco-system.
 
 This general mechanism could also be used for transparently logging other important stir related metadata associations perhaps via JWTClaimConstraints defined in {{RFC8226}} and {{RFC9118}} or other ways defined in potential future extensions of this document.
 
@@ -92,7 +92,7 @@ This section defines key terms used throughout the STI-CT framework to ensure cl
 
 ## Authentication Service (AS)
 
-A service that signs the identity of a telephone call using Secure Telephone Identity (STI) certificates, ensuring the authenticity of the caller information. It ensures that STI Certificates contain SCTs.
+A service defined in {{RFC8224}} that signs the identity of a telephone call using Secure Telephone Identity (STI) certificates, ensuring the authenticity of the caller information. It ensures that STI Certificates contain SCTs.
 
 ## Certificate Transparency (CT)
 
@@ -100,7 +100,7 @@ A framework designed to provide an open and verifiable log of issued certificate
 
 ## Delegate Certificate
 
-A type of STI certificate that associates a specific telephone number or a range of telephone numbers with a particular entity used to delegate the right to use these numbers.
+A type of STI certificate defined in {{RFC9060}} that associates a specific telephone number or a range of telephone numbers with a particular entity used to delegate the right to use these numbers.
 
 ## Log
 
@@ -136,7 +136,7 @@ A component of an X.509 certificate that contains all the information about the 
 
 ## Verification Service (VS)
 
-A service that verifies the authenticity of a telephone call by checking the validity of the PASSporT token, including verification that certificate contains valid SCTs.
+A service defined in {{RFC8224}} that verifies the authenticity of a telephone call by checking the validity of the PASSporT token, including verification that certificate contains valid SCTs.
 
 # STI Certificate Transparency Framework
 
@@ -156,7 +156,7 @@ When a pre-certificate is submitted:
 - If valid, the log generates and returns a Signed Certificate Timestamp (SCT) to the submitter.
 - The SCT serves as a promise from the log that the pre-certificate will be included in the Merkle Tree within a defined Maximum Merge Delay (MMD).
 
-Logs must publish a list of accepted root certificates, which aligns with those trusted in the STIR ecosystem. The inclusion of SCTs in the actual STI certificates is critical, as Verification Services (STI-VS) will only accept certificates that include valid SCTs.
+Logs must publish a list of accepted root certificates, which aligns with those trusted in the STIR ecosystem. The inclusion of SCTs in the actual STI certificates is critical, as Verification Services (VS) will only accept certificates that include valid SCTs.
 
 Note: The data structures (e.g., LogEntry, SignedCertificateTimestamp, TreeHeadSignature) in this section follow the definitions provided in {{RFC6962}}.
 
@@ -182,8 +182,7 @@ Logs must produce an STH within the Maximum Merge Delay (MMD) to confirm that al
 
 # STI-CT APIs
 
-STI-CT re-uses the REST endpoints defined in Section 4 of {{RFC6962}} (the “/ct/v1/” namespace) with no semantic changes.  For operational clarity deployments expose them under a path `/stict/v1/` but the request/response formats are compatible with RFC 6962.
-
+STI-CT re-uses the REST endpoints defined in Section 4 of {{RFC6962}} (the “/ct/v1/” namespace) with no semantic changes.  For operational clarity it is RECOMMENDED deployments expose them under a path `/stict/v1/` but the request/response formats are compatible with {{RFC6962}}.
 
 # Clients
 
@@ -195,18 +194,18 @@ Submitters in the STI-CT framework are typically STI Certification Authorities (
 
 ## Use of SCTs by Authentication and Verification Services
 
-The STI eco-system relies exclusively on the pre-certificate chain method defined in {{RFC6962}}; therefore every Certificate issued for call signing MUST already carry one or more embedded SCTs in the SignedCertificateTimestampList X.509 extension at issuance time.
+This specification defines the STI eco-system rely exclusively on the pre-certificate chain method defined in {{RFC6962}}; therefore every Certificate issued for call signing MUST already carry one or more embedded SCTs in the SignedCertificateTimestampList X.509 extension at issuance time.
 
-Because the SCT is delivered in-band with the Certificate, neither the AS nor the VS perform any network round-trips to Certificate Transparency (CT) logs on the call path. This design bounds incremental cryptographic processing to a few hundred micro-seconds and keeps overall Identity-header handling well below the ~100 ms budget typically available for SIP call setup and attestation/verification in production networks.
+Because the SCT is delivered in-band with the Certificate, neither the AS nor the VS perform any network round-trips to Certificate Transparency (CT) logs on the call path.
 
 ### Authentication Service Processing
 
-1. Local SCT validation – For each embedded SCT the AS MUST:
-   - compute the hash of the TBSCertificate as defined in {{RFC6962}} §3.2 and verify the SCT signature with the cached public key of the issuing CT log;
+1. Optional local SCT validation – For each embedded SCT the AS MAY:
+   - compute the hash of the TBSCertificate as defined in Section 3.2 of {{RFC6962}} and verify the SCT signature with the cached public key of the issuing CT log;
    - verify that now() >= SCT.timestamp advertised by that log.
    - Implementations SHOULD pre-compute and cache these checks at certificate activation time so that per-call signing incurs only an O(1) lookup.
-2. PASSporT construction – The PASSporT header and payload are produced per {{RFC8224}} using the Certificate’s private key; the Certificate (with its SCT list) is conveyed in the `ppt="shaken"` `x5u` or `x5c` parameter.
-3. Failure handling – If no SCT validates, the AS MUST treat the Certificate as unusable and refuse to sign the call.
+2. PASSporT construction – The PASSporT header and payload are produced per {{RFC8224}} using the Certificate’s private key; the Certificate (with its SCT list) is conveyed in the 'x5u' or 'x5c' parameter.
+3. Optional Failure handling – If no SCT validates, the AS MAY treat the Certificate as unusable and refuse to sign the call.
 
 ### Verification Service Processing
 
@@ -217,15 +216,14 @@ Upon receipt of a SIP INVITE bearing an Identity header, the VS performs the ste
 3. For every embedded SCT:
    - Verify signature against cached log key.
    - Ensure now() >= SCT.timestamp **or** defer to asynchronous auditor.
-   - If any SCT fails, mark call as “failed verification” per {{ATIS-1000074}} and optionally populate verstat=f
+   - If any SCT fails, the verification should also be considered failed. 
 
 Implementations SHOULD cache certificates and validated SCT objects for the lifetime of the certificates' notAfter field to amortize step 3 across many calls.
 
 ### Performance and Scalability Guidelines
 
 - No synchronous log queries - Embedded SCTs guarantee log commitment; therefore, AS/VS MUST NOT fetch proofs on the call path.
-- Key caching - Log public keys are static and should be loaded at process start-up; reload only on key-roll events signaled via CT gossip or operator policy.
-- Parallel verification - If multiple SCTs are present, VS SHOULD validate them in parallel to keep per-call CPU below ~1 ms on commodity cores.
+- Key caching - Log public keys are static and should be loaded at process start-up; reload only on key-roll events signaled via CT or operator policy.
 
 ## Monitor
 
@@ -234,45 +232,25 @@ Monitors in the STI-CT framework play a crucial role in maintaining the integrit
 ### Monitor Workflow
 
 1. Initialize Monitor:
-
 Set up the Monitor to periodically query the transparency logs for new entries. The Monitor must be configured with the base URL of each log it intends to monitor.
-
-Configure the Monitor with a list of telephone numbers (TNs) and associated entities to track.
-
+Configure the Monitor with a list of telephone numbers (TNs) and/or associated SPC represented entities to track.
 2. Retrieve Latest STH:
-
 The Monitor retrieves the latest Signed Tree Head (STH) from each log to determine the current state of the log.
-
-API Call: GET https://\<log server\>/stict/v1/get-sth
-
+<br><br>API Call: GET https://\<log server\>/stict/v1/get-sth
 3. Retrieve New Entries from Log:
-
 Using the STH, the Monitor retrieves new entries from the log that have been added since the last known state.
-
-API Call: GET https://\<log server\>/stict/v1/get-entries?start=last_known_index&end=current_sth_index
-
+<br><br>API Call: GET https://\<log server\>/stict/v1/get-entries?start=last_known_index&end=current_sth_index
 4. Decode and Verify Certificates:
-
 Decode each retrieved certificate and verify its validity using the provided certificate chain. Extract the entity name and TNAuthList from the certificate.
-
 5. Check for Mis-issuance:
-
 Compare the TNAuthList and entity name from the newly issued certificate with the Monitor's configured list. Alarm if a certificate is issued in the name of a different entity for the same TNs.
-
 6. Alarm and Reporting:
-
 If a mis-issuance is detected, raise an alarm and log the details for further investigation. Notify relevant stakeholders to rectify any confirmed mis-issuance.
-
 7. Maintain State and Continuity:
-
 Update the Monitor's last known state with the current STH index to ensure continuity in monitoring.
-
 8. STH Verification and Consistency Check:
-
 After retrieving a new STH, verify the STH signature.
-
 If not keeping all log entries, fetch a consistency proof for the new STH with the previous STH (GET https://\<log server\>/stict/v1/get-sth-consistency) and verify it.
-
 Go to Step 5 and repeat the process.
 
 ## Auditor
@@ -282,39 +260,27 @@ Auditors are responsible for verifying the consistency and correctness of the lo
 ### Auditor Functions
 
 1. STH Verification:
-
 Auditors can fetch STHs periodically and verify their signatures to ensure the log is maintaining its integrity.
-
-API Call: GET https://\<log server\>/stict/v1/get-sth
-
+<br><br>API Call: GET https://\<log server\>/stict/v1/get-sth
 2. Consistency Proof Verification:
-
 Auditors verify the consistency of a log over time by requesting a consistency proof between two STHs.
-
-API Call: GET https://\<log server\>/stict/v1/get-sth-consistency
-
+<br><br>API Call: GET https://\<log server\>/stict/v1/get-sth-consistency
 3. Audit Proof Verification:
-
 A certificate accompanied by an SCT can be verified against any STH dated after the SCT timestamp + the Maximum Merge Delay by requesting a Merkle audit proof.
-
-API Call: GET https://\<log server\>/stict/v1/get-proof-by-hash
-
+<br><br>API Call: GET https://\<log server\>/stict/v1/get-proof-by-hash
 4. Cross-Checking Logs:
-
 Auditors can cross-check entries across different logs by comparing SCTs and verifying that entries are consistently logged across the ecosystem.
-
 5. Error and Inconsistency Detection:
-
 Any discrepancies or failures in verification processes can be logged as evidence of potential log misbehavior, and appropriate actions can be taken based on the findings.
 
-# Relationship to RFC 6962
-This document profiles the Certificate Transparency (CT) protocol as defined in RFC 6962 for use within the STIR eco-system. All log data structures (e.g., LogEntry, SignedCertificateTimestamp, TreeHeadSignature) and API endpoints (e.g., add-pre-chain, get-sth, get-entries, etc.) are adopted directly from RFC 6962.
+# Relationship to RFC6962
+This document profiles the Certificate Transparency (CT) protocol as defined in {{RFC6962}} for use within the STIR eco-system. All log data structures (e.g., LogEntry, SignedCertificateTimestamp, TreeHeadSignature) and API endpoints (e.g., add-pre-chain, get-sth, get-entries, etc.) are adopted directly from {{RFC6962}}.
 
 The main differences are:
 - The expected certificate types are STI certificates as defined in {{RFC8226}} and {{RFC9060}}, with TNAuthList extensions.
 - Submitters are limited to STI Certification Authorities and Subordinate Certification Authorities.
-- Monitoring and auditing are focused on detection of mis-issued telephone number or service provider codes.
-- The client roles (e.g., VS, AS) interact with logs in ways specific to SIP call authentication.
+- Monitoring and auditing are focused on detection of mis-issued telephone number or service provider codes (SPCs).
+- The client roles (e.g., VS, AS) interact with certificates and logs in ways specific to SIP call authentication.
 
 # Security Considerations
 
