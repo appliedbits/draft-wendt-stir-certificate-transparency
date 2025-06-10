@@ -211,12 +211,11 @@ Because the SCT is delivered in-band with the Certificate, neither the AS nor th
 
 Upon receipt of a SIP INVITE bearing an Identity header, the VS performs the steps below, all of which are deliberately offline to avoid adding call-path latency:
 
-1. Verify PASSporT signature with DC public key
+1. Verify PASSporT signature with DC public key.
 2. Validate DC chain to an accepted STI trust anchor.
-3. For every embedded SCT:
+3. For each embedded SCT:
    - Verify signature against cached log key.
    - Ensure now() >= SCT.timestamp **or** defer to asynchronous auditor.
-   - If any SCT fails, the verification should also be considered failed. 
 
 Implementations SHOULD cache certificates and validated SCT objects for the lifetime of the certificates' notAfter field to amortize step 3 across many calls.
 
